@@ -259,6 +259,10 @@
           type: Ready
           status: "True"
           reason: AllObjectsAvailable
+        notify: restart coredns
+
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
 
     - name: Untaint the node
       kubernetes.core.k8s_taint:
@@ -278,3 +282,10 @@
         wait: true
         values_files:
           - ../kubernetes/helm-chart-apps/argo-cd/values.yaml
+
+  handlers:
+    - name: Restart coreDNS
+      ansible.builtin.command: kubectl rollout restart -n kube-system deploy/coredns
+      register: restart_coredns
+      changed_when: restart_coredns.rc != 0
+      listen: restart coredns

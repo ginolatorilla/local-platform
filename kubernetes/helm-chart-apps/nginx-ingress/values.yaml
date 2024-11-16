@@ -1,0 +1,13 @@
+controller:
+  config:
+    entries:
+      external-status-address: "127.0.0.1"
+  service:
+    type: NodePort
+    httpPort:
+      nodePort: 12080
+    httpsPort:
+      nodePort: 12443
+
+  extraArgs:
+    report-ingress-status:

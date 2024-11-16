@@ -9,7 +9,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/ginolatorilla/local-platform.git
-        revision: deploy-apps-with-argo-cd # TODO: reset to HEAD
+        revision: deploy-apps-with-argocd # TODO: reset to HEAD
         files:
           - path: kubernetes/helm-chart-apps/*/appset-config.yaml
 

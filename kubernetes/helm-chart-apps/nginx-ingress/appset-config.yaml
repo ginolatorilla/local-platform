@@ -5,4 +5,4 @@ namespace: nginx-ingress
 syncWave: -99
 
 # TODO: remove
-valuesRevision: deploy-apps-with-argo-cd
+valuesRevision: deploy-apps-with-argocd

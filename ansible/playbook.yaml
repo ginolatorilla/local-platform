@@ -77,3 +77,133 @@
       ansible.builtin.command:
         cmd: limactl start --name {{ virtual_machine.name }} --tty=false
         creates: "{{ virtual_machine_config_dir.path }}/*.pid"
+
+- name: Install Kubernetes
+  tags: kubeadm
+  hosts: kubernetes
+  vars:
+    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/kubernetes/ssh.config' }}"
+  vars_files:
+    - common_vars.yaml
+  become: true
+  tasks:
+    - name: Install required tools
+      ansible.builtin.apt:
+        update_cache: true
+        package:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gpg
+
+    - name: Kernel module config
+      ansible.builtin.copy:
+        src: files/etc/modules-load.d/k8s.conf
+        dest: /etc/modules-load.d/k8s.conf
+        mode: "0644"
+      notify: kernel modules reconfig
+
+    - name: IPv4 forwarding and bridged traffic for iptables config
+      ansible.builtin.copy:
+        src: files/etc/sysctl.d/k8s.conf
+        dest: /etc/sysctl.d/k8s.conf
+        mode: "0644"
+      notify: sysctl reconfig
+
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Add CRIO apt repo signing keys
+      ansible.builtin.apt_key:
+        url: "https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/deb/Release.key"
+        keyring: /etc/apt/keyrings/cri-o-apt-keyring.gpg
+
+    - name: Add CRIO apt repo
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/deb/ /
+
+    - name: Add Kubernetes apt repo signing keys
+      ansible.builtin.apt_key:
+        url: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key"
+        keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add Kubernetes apt repo
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /
+        state: present
+
+    - name: Install all Kubernetes binaries and dependencies
+      ansible.builtin.apt:
+        update_cache: true
+        package:
+          - kubelet
+          - kubeadm
+          - kubectl
+          - cri-o
+
+    - name: Launch services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        masked: false
+        state: started
+      loop:
+        - kubelet
+        - crio
+
+    - name: Configure kubeadm
+      ansible.builtin.template:
+        src: templates/etc/kubernetes/kubeadm.conf.j2
+        dest: /etc/kubernetes/kubeadm.yaml
+        mode: "0600"
+      register: kubeadm
+      notify:
+        - reset cluster
+
+    - name: Install single-node Kubernetes cluster with kubeadm
+      ansible.builtin.command:
+        cmd: kubeadm init --config {{ kubeadm.dest }}
+        creates: /etc/kubernetes/manifests/kube*.yaml
+
+    - name: Get kubeconfig
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ outputs_dir }}/kubeconfig.conf"
+        flat: true
+        mode: "0600"
+
+  handlers:
+    - name: Load kernel modules
+      ansible.builtin.command: "modprobe {{ item }}"
+      loop:
+        - overlay
+        - br_netfilter
+      register: cluster_bootstrap_modprobe
+      changed_when: cluster_bootstrap_modprobe.rc != 0
+      listen: kernel modules reconfig
+
+    - name: Apply sysctl params without reboot
+      ansible.builtin.command: sysctl --system
+      register: cluster_bootstrap_sysctl
+      changed_when: cluster_bootstrap_sysctl.rc != 0
+      listen: sysctl reconfig
+
+    - name: Reset cluster
+      ansible.builtin.shell:
+        cmd: |-
+          set -o pipefail
+          export KUBECONFIG=/etc/kubernetes/admin.conf
+
+          for node in $(kubectl get --no-headers nodes | awk '{print $1}'); do
+            kubectl drain $node --delete-emptydir-data --force --ignore-daemonsets
+          done
+
+          kubeadm reset -f
+          iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+          command -v ipvsadm && ipvsadm -C
+        executable: /bin/bash
+        removes: /etc/kubernetes/*.conf
+      ignore_errors: true
+      listen: reset cluster

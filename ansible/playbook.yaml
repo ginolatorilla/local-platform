@@ -55,13 +55,25 @@
   vars_files:
     - common_vars.yaml
   tasks:
-    - name: Create Lima output directory
+    - name: Create Lima config directory
       ansible.builtin.file:
-        path: "{{ outputs_dir }}/lima"
+        path: "~/.lima/{{ virtual_machine.name }}"
         state: directory
+      register: virtual_machine_config_dir
 
-    - name: Render Lima VM configuration
+    - name: Render virtual machine configuration
       ansible.builtin.template:
         src: templates/lima.yaml.j2
-        dest: "{{ outputs_dir }}/lima/config.yaml"
-      register: lima_vm_config
+        dest: "{{ virtual_machine_config_dir.path }}/lima.yaml"
+      register: virtual_machine_config
+
+    - name: Stop virtual machine
+      when: virtual_machine_config.changed
+      ansible.builtin.command:
+        cmd: limactl stop {{ virtual_machine.name }} --force
+        removes: "{{ virtual_machine_config_dir.path }}/*.pid"
+
+    - name: Start virtual machine
+      ansible.builtin.command:
+        cmd: limactl start --name {{ virtual_machine.name }} --tty=false
+        creates: "{{ virtual_machine_config_dir.path }}/*.pid"

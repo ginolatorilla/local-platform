@@ -66,17 +66,22 @@
         src: templates/lima.yaml.j2
         dest: "{{ virtual_machine_config_dir.path }}/lima.yaml"
       register: virtual_machine_config
+      notify: restart vm
 
-    - name: Stop virtual machine
-      when: virtual_machine_config.changed
-      ansible.builtin.command:
-        cmd: limactl stop {{ virtual_machine.name }} --force
-        removes: "{{ virtual_machine_config_dir.path }}/*.pid"
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
 
     - name: Start virtual machine
       ansible.builtin.command:
         cmd: limactl start --name {{ virtual_machine.name }} --tty=false
         creates: "{{ virtual_machine_config_dir.path }}/*.pid"
+
+  handlers:
+    - name: Stop virtual machine
+      ansible.builtin.command:
+        cmd: limactl stop {{ virtual_machine.name }} --force
+        removes: "{{ virtual_machine_config_dir.path }}/*.pid"
+      listen: restart vm
 
 - name: Install Kubernetes
   tags: kubeadm

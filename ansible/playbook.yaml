@@ -162,6 +162,9 @@
       notify:
         - reset cluster
 
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
+
     - name: Install single-node Kubernetes cluster with kubeadm
       ansible.builtin.command:
         cmd: kubeadm init --config {{ kubeadm.dest }}
@@ -173,6 +176,14 @@
         dest: "{{ outputs_dir }}/kubeconfig.conf"
         flat: true
         mode: "0600"
+
+    - name: Replace server address in kubeconfig
+      delegate_to: localhost
+      become: false
+      ansible.builtin.replace:
+        path: "{{ outputs_dir }}/kubeconfig.conf"
+        regexp: "server: .*:6443"
+        replace: "server: https://localhost:6443"
 
   handlers:
     - name: Load kernel modules

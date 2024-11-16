@@ -223,3 +223,38 @@
         removes: /etc/kubernetes/*.conf
       ignore_errors: true
       listen: reset cluster
+
+- name: Deploy apps in Kubernetes
+  tags: apps
+  hosts: localhost
+  vars_files:
+    - common_vars.yaml
+  environment:
+    KUBECONFIG: "{{ outputs_dir }}/kubeconfig.conf"
+  tasks:
+    - name: Add Helm repository for Calico
+      kubernetes.core.helm_repository:
+        name: projectcalico
+        repo_url: https://docs.tigera.io/calico/charts
+
+    - name: Deploy Calico as CNI
+      kubernetes.core.helm:
+        name: calico
+        chart_ref: projectcalico/tigera-operator
+        chart_version: v3.27.3
+        release_namespace: tigera-operator
+        create_namespace: true
+        wait: true
+
+    - name: Wait for Calico to be ready
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: operator.tigera.io/v1
+          kind: Installation
+          metadata:
+            name: default
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+          reason: AllObjectsAvailable

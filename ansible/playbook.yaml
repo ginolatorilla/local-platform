@@ -283,6 +283,42 @@
         values_files:
           - ../kubernetes/helm-chart-apps/argo-cd/values.yaml
 
+    - name: Deploy all other apps with ArgoCD
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: app-of-apps
+            namespace: argocd
+          spec:
+            project: default
+            source:
+              repoURL: "{{ argocd_source_repo_url }}"
+              targetRevision: deploy-apps-with-argo-cd # TODO: reset later to HEAD
+              path: kubernetes/argocd
+            destination:
+              name: in-cluster
+              namespace: argocd
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
+                allowEmpty: false
+              syncOptions:
+                - CreateNamespace=true
+                - PrunePropagationPolicy=foreground
+                - PruneLast=true
+                - RespectIgnoreDifferences=true
+                - ApplyOutOfSyncOnly=true
+              retry:
+                limit: 5
+                backoff:
+                  duration: 5s
+                  factor: 2
+                  maxDuration: 3m
+            revisionHistoryLimit: 0
+
   handlers:
     - name: Restart coreDNS
       ansible.builtin.command: kubectl rollout restart -n kube-system deploy/coredns

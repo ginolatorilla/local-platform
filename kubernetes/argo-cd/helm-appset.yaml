@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: helm-chart-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+
+  generators:
+    - git:
+        repoURL: https://github.com/ginolatorilla/local-platform.git
+        revision: HEAD
+        files:
+          - path: kubernetes/helm-chart-apps/*/appset-config.yaml
+
+  template:
+    metadata:
+      name: "{{ .helmChart }}"
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{ default "0" .syncWave }}'
+    spec:
+      project: default
+      destination:
+        name: in-cluster
+        namespace: "{{ .namespace }}"
+      sources:
+        - repoURL: "{{ .helmChartURL }}"
+          chart: "{{ .helmChart }}"
+          targetRevision: "{{ .helmChartVersion }}"
+          helm:
+            valueFiles:
+              - $values/kubernetes/helm-chart-apps/{{ .helmChart }}/values.yaml
+        - repoURL: "https://github.com/ginolatorilla/local-platform.git"
+          targetRevision: '{{ default "HEAD" .valuesRevision }}'
+          ref: values
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+          - RespectIgnoreDifferences=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+  syncPolicy:
+    preserveResourcesOnDeletion: false

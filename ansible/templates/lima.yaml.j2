@@ -22,6 +22,9 @@ disk: {{ virtual_machine.disk }}
 containerd:
   user: false
 
+networks:
+  - vzNAT: true
+
 provision:
   - # Remove the "lima-" prefix in the hostnames
     mode: system

@@ -1,0 +1,51 @@
+- name: Preparations
+  tags: prepare
+  hosts: localhost
+  tasks:
+    - name: Set global variables
+      ansible.builtin.set_fact:
+        outputs_dir: "{{ playbook_dir }}/../outputs"
+
+    - name: Install required tools
+      ansible.builtin.package:
+        name:
+          - kubernetes-cli
+          - helm
+      become: "{{ ansible_os_family != 'Darwin' }}"
+
+    - name: Create certificate outputs directory
+      ansible.builtin.file:
+        path: "{{ outputs_dir }}/certs"
+        state: directory
+
+    - name: Create signing key for own CA
+      community.crypto.openssl_privatekey:
+        path: "{{ outputs_dir }}/certs/ownca.key"
+      register: ownca_privatekey
+
+    - name: Create CSR for own CA
+      community.crypto.openssl_csr:
+        path: "{{ outputs_dir }}/certs/ownca.csr"
+        privatekey_path: "{{ ownca_privatekey.filename }}"
+        common_name: "My Local Platform"
+        create_subject_key_identifier: true
+        use_common_name_for_san: false
+        basic_constraints:
+          - "CA:TRUE"
+        basic_constraints_critical: true
+        key_usage:
+          - keyCertSign
+        key_usage_critical: true
+      register: ownca_csr
+
+    - name: Create own certificate authority (CA)
+      community.crypto.x509_certificate:
+        path: "{{ outputs_dir }}/certs/ownca.crt"
+        privatekey_path: "{{ ownca_privatekey.filename }}"
+        csr_path: "{{ ownca_csr.filename }}"
+        provider: selfsigned
+      register: ownca_crt
+
+    - name: Remind to distribute own CA certificate
+      ansible.builtin.debug:
+        msg: "Please install the CA certificate, which you can find here: {{ ownca_crt.filename | realpath }}"

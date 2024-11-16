@@ -76,6 +76,21 @@
         cmd: limactl start --name {{ virtual_machine.name }} --tty=false
         creates: "{{ virtual_machine_config_dir.path }}/*.pid"
 
+    - name: Get virtual machine NAT IP address
+      ansible.builtin.shell: >-
+        limactl shell {{ virtual_machine.name }} -- sh -c "ip -4 addr show lima0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'"
+      register: virtual_machine_ip
+      changed_when: virtual_machine_ip.rc != 0
+
+    - name: Print virtual machine NAT IP address
+      ansible.builtin.debug:
+        msg: "The virtual machine's NAT IP address is {{ virtual_machine_ip.stdout }}"
+
+    - name: Save virtual machine NAT IP address to a file
+      ansible.builtin.copy:
+        content: "{{ virtual_machine_ip.stdout }}"
+        dest: "{{ outputs_dir }}/virtual_machine_ip"
+
   handlers:
     - name: Stop virtual machine
       ansible.builtin.command:

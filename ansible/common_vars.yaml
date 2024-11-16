@@ -1,0 +1,6 @@
+outputs_dir: "{{ playbook_dir }}/../outputs"
+virtual_machine:
+  name: kubernetes
+  cpus: 2
+  memory: 4G
+  disk: 20G

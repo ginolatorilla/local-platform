@@ -9,4 +9,4 @@ if [ ! -d "$VENV_DIR" ]; then
 fi
 
 source "$VENV_DIR"/bin/activate
-ansible-playbook "$ANSIBLE_DIR"/playbook.yaml -i "$ANSIBLE_DIR"/inventory.yaml "$@"
+ansible-playbook "$ANSIBLE_DIR"/playbook.yaml -i "$ANSIBLE_DIR"/inventory.ini "$@"

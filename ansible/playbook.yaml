@@ -259,7 +259,7 @@
           type: Ready
           status: "True"
           reason: AllObjectsAvailable
-        notify: restart coredns
+      notify: restart coredns
 
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers

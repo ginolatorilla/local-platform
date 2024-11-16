@@ -189,6 +189,7 @@
         path: "{{ outputs_dir }}/kubeconfig.conf"
         regexp: "server: .*:6443"
         replace: "server: https://localhost:6443"
+        mode: "0600"
 
   handlers:
     - name: Load kernel modules

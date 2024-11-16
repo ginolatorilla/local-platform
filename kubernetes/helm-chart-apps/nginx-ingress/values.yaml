@@ -5,9 +5,9 @@ controller:
   service:
     type: NodePort
     httpPort:
-      nodePort: 12080
+      nodePort: 30080
     httpsPort:
-      nodePort: 12443
+      nodePort: 30443
 
   extraArgs:
     report-ingress-status:

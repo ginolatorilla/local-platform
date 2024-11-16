@@ -294,9 +294,9 @@
           spec:
             project: default
             source:
-              repoURL: "{{ argocd_source_repo_url }}"
-              targetRevision: deploy-apps-with-argo-cd # TODO: reset later to HEAD
-              path: kubernetes/argocd
+              repoURL: https://github.com/ginolatorilla/local-platform.git
+              targetRevision: deploy-apps-with-argocd # TODO: reset later to HEAD
+              path: kubernetes/argo-cd
             destination:
               name: in-cluster
               namespace: argocd

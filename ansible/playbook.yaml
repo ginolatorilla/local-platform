@@ -259,3 +259,22 @@
           type: Ready
           status: "True"
           reason: AllObjectsAvailable
+
+    - name: Untaint the node
+      kubernetes.core.k8s_taint:
+        state: absent
+        name: "{{ virtual_machine.name }}"
+        taints:
+          - key: node-role.kubernetes.io/control-plane
+            effect: NoSchedule
+
+    - name: Deploy ArgoCD
+      kubernetes.core.helm:
+        name: argocd
+        chart_ref: oci://ghcr.io/argoproj/argo-helm/argo-cd
+        chart_version: 7.7.3
+        release_namespace: argocd
+        create_namespace: true
+        wait: true
+        values_files:
+          - ../kubernetes/helm-chart-apps/argo-cd/values.yaml

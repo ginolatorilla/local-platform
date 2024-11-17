@@ -308,6 +308,27 @@
         values_files:
           - ../kubernetes/helm-chart-apps/argo-cd/values.yaml
 
+    - name: Create namespace for CertManager
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: cert-manager
+
+    - name: Install own CA as a secret in CertManager
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: own-ca
+            namespace: cert-manager
+          data:
+            tls.crt: "{{ lookup('file', outputs_dir + '/certs/ownca.crt') | b64encode }}"
+            tls.key: "{{ lookup('file', outputs_dir + '/certs/ownca.key') | b64encode }}"
+      no_log: true
+
     - name: Deploy all other apps with ArgoCD
       kubernetes.core.k8s:
         definition:

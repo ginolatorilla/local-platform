@@ -191,6 +191,24 @@
         replace: "server: https://localhost:6443"
         mode: "0600"
 
+    - name: Create HAProxy config directory
+      ansible.builtin.file:
+        path: "/etc/haproxy"
+        state: directory
+
+    - name: Configure HAProxy for the ingress controller
+      ansible.builtin.template:
+        src: templates/etc/haproxy/haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        mode: "0644"
+      notify: reload haproxy
+
+    - name: Deploy HAProxy as a static pod
+      ansible.builtin.copy:
+        src: files/etc/kubernetes/manifests/haproxy.yaml
+        dest: /etc/kubernetes/manifests/haproxy.yaml
+        mode: "0644"
+
   handlers:
     - name: Load kernel modules
       ansible.builtin.command: "modprobe {{ item }}"
@@ -224,6 +242,13 @@
         removes: /etc/kubernetes/*.conf
       ignore_errors: true
       listen: reset cluster
+
+    - name: Reload HAProxy
+      environment:
+        KUBECONFIG: "/etc/kubernetes/admin.conf"
+      ansible.builtin.command: kubectl exec -n kube-system haproxy-{{ virtual_machine.name }} -- sh -c 'kill -HUP $(pidof haproxy)'
+      ignore_errors: true
+      listen: reload haproxy
 
 - name: Deploy apps in Kubernetes
   tags: apps

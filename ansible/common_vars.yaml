@@ -11,3 +11,8 @@ kubernetes_version: "1.30"
 kubernetes_cluster_name: "kubernetes"
 kubernetes_service_cidr: "172.16.0.0/18"
 kubernetes_pod_cidr: "10.85.0.0/16" # CRIO's default (hardcoded); TODO: implement
+
+ingress_controller:
+  node_ports:
+    http: 30080
+    https: 30443

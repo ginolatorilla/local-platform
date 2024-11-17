@@ -1,1 +1,14 @@
-fullnameOverride: argocd
+global:
+  domain: argocd.localhost
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "ingress-cert-issuer"
+    # tls: true
+
+configs:
+  params:
+    server.insecure: true

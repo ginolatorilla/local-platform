@@ -7,7 +7,7 @@ server:
     ingressClassName: nginx
     annotations:
       cert-manager.io/cluster-issuer: "ingress-cert-issuer"
-    # tls: true
+    tls: true
 
 configs:
   params:

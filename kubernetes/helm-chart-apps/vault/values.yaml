@@ -15,4 +15,4 @@ server:
           - vault.localhost
   dataStorage:
     enabled: true
-    storageClass: fast-disks
+    storageClass: local-path

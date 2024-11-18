@@ -245,8 +245,13 @@
 
     - name: Reload HAProxy
       environment:
-        KUBECONFIG: "/etc/kubernetes/admin.conf"
-      ansible.builtin.command: kubectl exec -n kube-system haproxy-{{ virtual_machine.name }} -- sh -c 'kill -HUP $(pidof haproxy)'
+        KUBECONFIG: "{{ outputs_dir }}/kubeconfig.conf"
+      delegate_to: localhost
+      become: false
+      kubernetes.core.k8s_exec:
+        namespace: kube-system
+        pod: haproxy-{{ virtual_machine.name }}
+        command: sh -c 'kill -HUP $(pidof haproxy)'
       ignore_errors: true
       listen: reload haproxy
 

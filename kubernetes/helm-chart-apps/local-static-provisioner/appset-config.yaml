@@ -1,8 +1,0 @@
-helmChart: local-static-provisioner
-helmChartVersion: 2.0.0
-helmChartURL: https://kubernetes-sigs.github.io/sig-storage-local-static-provisioner
-namespace: local-static-provisioner
-syncWave: -99
-
-# TODO: remove
-valuesRevision: deploy-apps-with-argocd

@@ -22,6 +22,13 @@ disk: {{ virtual_machine.disk }}
 containerd:
   user: false
 
+mountInotify: true
+mountType: virtiofs
+mounts:
+  - location: "{{ outputs_dir + '/vm-storage' }}"
+    mountPoint: /mnt/data
+    writable: true
+
 provision:
   - # Remove the "lima-" prefix in the hostnames
     mode: system

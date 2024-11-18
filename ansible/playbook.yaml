@@ -370,9 +370,60 @@
                   maxDuration: 3m
             revisionHistoryLimit: 0
 
+    - name: Check Vault Status
+      kubernetes.core.k8s_exec:
+        namespace: vault
+        pod: vault-0
+        container: vault
+        command: vault status -tls-skip-verify
+      register: vault_status
+      ignore_errors: true
+      notify: unseal vault
+      changed_when: vault_status.rc != 0
+      failed_when: vault_status.rc == 1 # 2 means vault is sealed sealed
+
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
   handlers:
     - name: Restart coreDNS
       ansible.builtin.command: kubectl rollout restart -n kube-system deploy/coredns
       register: restart_coredns
       changed_when: restart_coredns.rc != 0
       listen: restart coredns
+
+    - name: Unseal Vault
+      environment:
+        KUBECONFIG: "{{ outputs_dir }}/kubeconfig.conf"
+      block:
+        - name: Initialize Vault
+          kubernetes.core.k8s_exec:
+            namespace: vault
+            pod: vault-0
+            container: vault
+            command: vault operator init
+          register: vault_operator_init
+          changed_when: vault_operator_init.rc != 0
+          listen: unseal vault
+
+        - name: Save Vault unseal keys to file
+          ansible.builtin.copy:
+            content: "{{ vault_operator_init.stdout }}"
+            dest: "{{ outputs_dir }}/vault_unseal_keys.txt"
+            mode: "0600"
+          listen: unseal vault
+
+        - name: Parse unseal keys
+          set_fact:
+            vault_unseal_keys: "{{ vault_operator_init.stdout | regex_findall('Unseal Key [0-9]+: ([a-zA-Z0-9+/=]+)') }}"
+          listen: unseal vault
+
+        - name: Unseal Vault
+          kubernetes.core.k8s_exec:
+            namespace: vault
+            pod: vault-0
+            container: vault
+            command: vault operator unseal "{{ item }}"
+          register: vault_operator_unseal
+          loop: "{{ vault_unseal_keys[:3] }}"
+          changed_when: vault_operator_unseal.rc != 0
+          listen: unseal vault

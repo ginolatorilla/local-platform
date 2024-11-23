@@ -3,6 +3,4 @@ helmChartVersion: 0.0.31
 helmChartURL: https://charts.containeroo.ch
 namespace: local-path-provisioner
 syncWave: -99
-
-# TODO: remove
-valuesRevision: deploy-apps-with-argocd
+valuesRevision: HEAD

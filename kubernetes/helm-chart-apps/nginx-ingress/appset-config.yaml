@@ -4,6 +4,4 @@ helmChartVersion: 1.2.0
 helmChartURL: ghcr.io/nginxinc/charts
 namespace: nginx-ingress
 syncWave: -99
-
-# TODO: remove
-valuesRevision: deploy-apps-with-argocd
+valuesRevision: HEAD

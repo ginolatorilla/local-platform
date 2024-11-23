@@ -346,7 +346,7 @@
             project: default
             source:
               repoURL: https://github.com/ginolatorilla/local-platform.git
-              targetRevision: deploy-apps-with-argocd # TODO: reset later to HEAD
+              targetRevision: HEAD
               path: kubernetes/argo-cd
             destination:
               name: in-cluster

@@ -27,3 +27,27 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 
 1. Change the variables in the inventory file at [ansible/inventory.yaml](./ansible/inventory.yaml).
 2. Run `./install.sh`.
+
+## Port forwarding
+
+Lima automatically forwards the following localhost ports to the host:
+
+| Port | Service                |
+| ---- | ---------------------- |
+| 80   | HAProxy HTTP listener  |
+| 443  | HAProxy HTTPS listener |
+| 6443 | Kubernetes API         |
+
+## Ingress
+
+HAProxy acts as the external load balancer for this cluster. HTTPS connections will pass through and terminated by
+the ingress controller. Each ingress must have Certmanager annotations so they will have their own TLS certificates.
+
+The certificate authority is generated to `./outputs/certs/ownca.crt`. Make sure you install this CA to your host.
+
+Since the ingresses will be listening to hostnames, make sure you add them to your `/etc/hosts` file.
+
+## Filesystem mounts
+
+The `./outputs/vm-storage` folder is mounted to the VM as `/mnt/data`. The PV provisioner (based from Rancher)
+will mount volumes to this directory, ensuring application data will survive if the cluster is destroyed.

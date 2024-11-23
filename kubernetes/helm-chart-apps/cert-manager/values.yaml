@@ -1,0 +1,11 @@
+installCRDs: true
+
+extraObjects:
+  - |-
+    apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: ingress-cert-issuer
+    spec:
+      ca:
+        secretName: own-ca

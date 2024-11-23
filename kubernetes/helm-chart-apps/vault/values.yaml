@@ -1,0 +1,18 @@
+fullnameOverride: vault
+
+server:
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: ingress-cert-issuer
+    ingressClassName: nginx
+    hosts:
+      - host: vault.localhost
+        path: []
+    tls:
+      - secretName: vault-tls
+        hosts:
+          - vault.localhost
+  dataStorage:
+    enabled: true
+    storageClass: local-path

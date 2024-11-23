@@ -1,0 +1,15 @@
+controller:
+  config:
+    entries:
+      external-status-address: "127.0.0.1"
+      set-real-ip-from: "127.0.0.1"
+      real-ip-header: "X-Forwarded-For"
+  service:
+    type: NodePort
+    httpPort:
+      nodePort: 30080
+    httpsPort:
+      nodePort: 30443
+
+  extraArgs:
+    report-ingress-status:

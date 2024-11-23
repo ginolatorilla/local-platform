@@ -191,6 +191,24 @@
         replace: "server: https://localhost:6443"
         mode: "0600"
 
+    - name: Create HAProxy config directory
+      ansible.builtin.file:
+        path: "/etc/haproxy"
+        state: directory
+
+    - name: Configure HAProxy for the ingress controller
+      ansible.builtin.template:
+        src: templates/etc/haproxy/haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        mode: "0644"
+      notify: reload haproxy
+
+    - name: Deploy HAProxy as a static pod
+      ansible.builtin.copy:
+        src: files/etc/kubernetes/manifests/haproxy.yaml
+        dest: /etc/kubernetes/manifests/haproxy.yaml
+        mode: "0644"
+
   handlers:
     - name: Load kernel modules
       ansible.builtin.command: "modprobe {{ item }}"
@@ -224,6 +242,18 @@
         removes: /etc/kubernetes/*.conf
       ignore_errors: true
       listen: reset cluster
+
+    - name: Reload HAProxy
+      environment:
+        KUBECONFIG: "{{ outputs_dir }}/kubeconfig.conf"
+      delegate_to: localhost
+      become: false
+      kubernetes.core.k8s_exec:
+        namespace: kube-system
+        pod: haproxy-{{ virtual_machine.name }}
+        command: sh -c 'kill -HUP $(pidof haproxy)'
+      ignore_errors: true
+      listen: reload haproxy
 
 - name: Deploy apps in Kubernetes
   tags: apps
@@ -259,7 +289,7 @@
           type: Ready
           status: "True"
           reason: AllObjectsAvailable
-        notify: restart coredns
+      notify: restart coredns
 
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers
@@ -283,9 +313,117 @@
         values_files:
           - ../kubernetes/helm-chart-apps/argo-cd/values.yaml
 
+    - name: Create namespace for CertManager
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: cert-manager
+
+    - name: Install own CA as a secret in CertManager
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: own-ca
+            namespace: cert-manager
+          data:
+            tls.crt: "{{ lookup('file', outputs_dir + '/certs/ownca.crt') | b64encode }}"
+            tls.key: "{{ lookup('file', outputs_dir + '/certs/ownca.key') | b64encode }}"
+      no_log: true
+
+    - name: Deploy all other apps with ArgoCD
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: app-of-apps
+            namespace: argocd
+          spec:
+            project: default
+            source:
+              repoURL: https://github.com/ginolatorilla/local-platform.git
+              targetRevision: deploy-apps-with-argocd # TODO: reset later to HEAD
+              path: kubernetes/argo-cd
+            destination:
+              name: in-cluster
+              namespace: argocd
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
+                allowEmpty: false
+              syncOptions:
+                - CreateNamespace=true
+                - PrunePropagationPolicy=foreground
+                - PruneLast=true
+                - RespectIgnoreDifferences=true
+                - ApplyOutOfSyncOnly=true
+              retry:
+                limit: 5
+                backoff:
+                  duration: 5s
+                  factor: 2
+                  maxDuration: 3m
+            revisionHistoryLimit: 0
+
+    - name: Check Vault Status
+      kubernetes.core.k8s_exec:
+        namespace: vault
+        pod: vault-0
+        container: vault
+        command: vault status -tls-skip-verify
+      register: vault_status
+      ignore_errors: true
+      notify: unseal vault
+      changed_when: vault_status.rc != 0
+      failed_when: vault_status.rc == 1 # 2 means vault is sealed sealed
+
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
   handlers:
     - name: Restart coreDNS
       ansible.builtin.command: kubectl rollout restart -n kube-system deploy/coredns
       register: restart_coredns
       changed_when: restart_coredns.rc != 0
       listen: restart coredns
+
+    - name: Unseal Vault
+      environment:
+        KUBECONFIG: "{{ outputs_dir }}/kubeconfig.conf"
+      block:
+        - name: Initialize Vault
+          kubernetes.core.k8s_exec:
+            namespace: vault
+            pod: vault-0
+            container: vault
+            command: vault operator init
+          register: vault_operator_init
+          changed_when: vault_operator_init.rc != 0
+          listen: unseal vault
+
+        - name: Save Vault unseal keys to file
+          ansible.builtin.copy:
+            content: "{{ vault_operator_init.stdout }}"
+            dest: "{{ outputs_dir }}/vault_unseal_keys.txt"
+            mode: "0600"
+          listen: unseal vault
+
+        - name: Parse unseal keys
+          set_fact:
+            vault_unseal_keys: "{{ vault_operator_init.stdout | regex_findall('Unseal Key [0-9]+: ([a-zA-Z0-9+/=]+)') }}"
+          listen: unseal vault
+
+        - name: Unseal Vault
+          kubernetes.core.k8s_exec:
+            namespace: vault
+            pod: vault-0
+            container: vault
+            command: vault operator unseal "{{ item }}"
+          register: vault_operator_unseal
+          loop: "{{ vault_unseal_keys[:3] }}"
+          changed_when: vault_operator_unseal.rc != 0
+          listen: unseal vault

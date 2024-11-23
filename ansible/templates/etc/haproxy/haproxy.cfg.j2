@@ -1,0 +1,53 @@
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    daemon
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option                  http-server-close
+    option                  forwardfor
+    option                  redispatch
+    retries                 1
+    timeout http-request    10s
+    timeout queue           20s
+    timeout connect         5s
+    timeout client          20s
+    timeout server          20s
+    timeout http-keep-alive 10s
+    timeout check           10s
+
+frontend http
+    bind 127.0.0.1:80
+    mode http
+    option tcplog
+    default_backend ingress_http_nodeport
+
+frontend https
+    bind 127.0.0.1:443
+    mode tcp
+    option tcplog
+    default_backend ingress_https_nodeport
+
+backend ingress_http_nodeport
+    mode http
+    option tcp-check
+    balance roundrobin
+        server kubernetes {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:{{ ingress_controller.node_ports.http }} check
+
+backend ingress_https_nodeport
+    mode tcp
+    option tcp-check
+    option ssl-hello-chk
+    balance roundrobin
+        server kubernetes {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:{{ ingress_controller.node_ports.https }} check

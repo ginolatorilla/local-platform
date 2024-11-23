@@ -1,1 +1,23 @@
-fullnameOverride: argocd
+global:
+  domain: argocd.localhost
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "ingress-cert-issuer"
+    tls: true
+
+configs:
+  cm:
+    create: true
+
+    resource.customizations: |
+      admissionregistration.k8s.io/MutatingWebhookConfiguration:
+        ignoreDifferences: |
+          jsonPointers:
+          - /webhooks/0/clientConfig/caBundle
+
+  params:
+    server.insecure: true

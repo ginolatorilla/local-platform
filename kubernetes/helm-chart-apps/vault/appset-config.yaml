@@ -1,0 +1,6 @@
+helmChart: vault
+helmChartVersion: 0.28.0
+helmChartURL: https://helm.releases.hashicorp.com
+namespace: vault
+syncWave: -97
+valuesRevision: HEAD

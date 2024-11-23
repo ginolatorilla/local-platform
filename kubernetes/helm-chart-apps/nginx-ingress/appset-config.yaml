@@ -1,0 +1,7 @@
+helmChart: nginx-ingress
+helmChartVersion: 1.2.0
+# oci://ghcr.io/nginxinc/charts/nginx-ingress
+helmChartURL: ghcr.io/nginxinc/charts
+namespace: nginx-ingress
+syncWave: -99
+valuesRevision: HEAD

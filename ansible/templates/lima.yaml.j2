@@ -28,6 +28,8 @@ mounts:
   - location: "{{ outputs_dir + '/vm-storage' }}"
     mountPoint: /mnt/data
     writable: true
+  - location: "~"
+    mountPoint: /mnt/user
 
 provision:
   - # Remove the "lima-" prefix in the hostnames

@@ -1,0 +1,6 @@
+helmChart: jenkins
+helmChartVersion: 5.7.15
+helmChartURL: https://charts.jenkins.io
+namespace: jenkins
+syncWave: 0
+valuesRevision: jenkins-and-mounted-userdir

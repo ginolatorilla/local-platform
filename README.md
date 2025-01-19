@@ -22,6 +22,7 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 ## Requirements
 
 - Python 3
+- Terraform
 
 ## Installation
 

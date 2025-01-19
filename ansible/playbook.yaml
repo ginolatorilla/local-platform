@@ -427,3 +427,23 @@
           loop: "{{ vault_unseal_keys[:3] }}"
           changed_when: vault_operator_unseal.rc != 0
           listen: unseal vault
+
+- name: Configure apps with Terraform
+  tags: terraform
+  hosts: localhost
+  vars_files:
+    - common_vars.yaml
+  tasks:
+    - name: Run Terraform Init
+      ansible.builtin.command:
+        cmd: terraform init
+        chdir: ../terraform/vault
+      register: terraform_init
+      changed_when: terraform_init.rc != 0
+
+    - name: Run Terraform Apply
+      ansible.builtin.command:
+        cmd: terraform apply -auto-approve
+        chdir: ../terraform/vault
+      register: terraform_apply
+      changed_when: terraform_apply.rc != 0

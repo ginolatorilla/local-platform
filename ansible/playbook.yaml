@@ -85,9 +85,9 @@
 
 - name: Install Kubernetes
   tags: kubeadm
-  hosts: kubernetes
+  hosts: k8s
   vars:
-    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/kubernetes/ssh.config' }}"
+    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/' + virtual_machine.name + '/ssh.config' }}"
   vars_files:
     - common_vars.yaml
   become: true

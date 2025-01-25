@@ -1,9 +1,9 @@
 outputs_dir: "{{ (playbook_dir + '/../outputs') | realpath }}"
 
 virtual_machine:
-  name: kubernetes
+  name: k8s
   cpus: 10
-  memory: 36G
+  memory: 48G
   disk: 40G
 
 crio_version: "1.30"

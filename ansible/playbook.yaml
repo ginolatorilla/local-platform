@@ -315,14 +315,6 @@
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers
 
-    - name: Untaint the node
-      kubernetes.core.k8s_taint:
-        state: absent
-        name: "{{ virtual_machine.name }}"
-        taints:
-          - key: node-role.kubernetes.io/control-plane
-            effect: NoSchedule
-
     - name: Deploy ArgoCD
       kubernetes.core.helm:
         name: argocd

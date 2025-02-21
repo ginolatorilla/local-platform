@@ -183,6 +183,13 @@
       notify:
         - reset cluster
 
+    - name: Trigger reset cluster
+      ansible.builtin.debug:
+        msg: "{{ 'Cluster reset triggered' if reset_cluster is defined and reset_cluster else 'Cluster reset not required' }}"
+      changed_when: reset_cluster is defined and reset_cluster
+      notify:
+        - reset cluster
+
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers
 

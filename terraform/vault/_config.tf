@@ -15,5 +15,9 @@ terraform {
 provider "vault" {
   address      = "https://vault.localhost"
   ca_cert_file = "../../outputs/certs/ownca.crt"
-  token        = regex("Token: (.+\\b)", file("../../outputs/vault_unseal_keys.txt"))[0]
+}
+
+variable "token" {
+  type      = string
+  sensitive = true
 }

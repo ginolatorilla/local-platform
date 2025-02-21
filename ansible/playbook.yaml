@@ -443,6 +443,19 @@
             vault_unseal_keys: "{{ vault_operator_init.stdout | regex_findall('Unseal Key [0-9]+: ([a-zA-Z0-9+/=]+)') }}"
           listen: unseal vault
 
+        - name: Parse root token
+          set_fact:
+            vault_root_token: "{{ vault_operator_init.stdout | regex_findall('Initial Root Token: ([a-zA-Z0-9.+/=]+)') }}"
+          listen: unseal vault
+
+        - name: Save Vault root token to Terraform repo
+          ansible.builtin.copy:
+            content: |-
+              token="{{ vault_root_token[0] }}"
+            dest: "../terraform/vault/local.auto.tfvars"
+            mode: "0644"
+          listen: unseal vault
+
         - name: Unseal Vault
           kubernetes.core.k8s_exec:
             namespace: vault

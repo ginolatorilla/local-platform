@@ -383,6 +383,19 @@
                   maxDuration: 3m
             revisionHistoryLimit: 0
 
+    - name: Wait for Vault pod to be started
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: vault-0
+            namespace: vault
+        wait: true
+        wait_condition:
+          type: PodReadyToStartContainers
+          status: "True"
+
     - name: Check Vault Status
       kubernetes.core.k8s_exec:
         namespace: vault
@@ -390,10 +403,10 @@
         container: vault
         command: vault status -tls-skip-verify
       register: vault_status
-      ignore_errors: true
+      retries: 3
       notify: unseal vault
       changed_when: vault_status.rc != 0
-      failed_when: vault_status.rc == 1 # 2 means vault is sealed sealed
+      failed_when: vault_status.rc == 1 # 2 means vault is sealed
 
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers

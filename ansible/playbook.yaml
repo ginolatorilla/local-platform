@@ -92,6 +92,16 @@
     - common_vars.yaml
   become: true
   tasks:
+    - name: Install own CA certificate
+      ansible.builtin.copy:
+        src: "{{ outputs_dir }}/certs/ownca.crt"
+        dest: /usr/local/share/ca-certificates/ownca.crt
+        mode: "0644"
+      notify: update ca-certificates
+
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
+
     - name: Install required tools
       ansible.builtin.apt:
         update_cache: true
@@ -216,6 +226,11 @@
         mode: "0644"
 
   handlers:
+    - name: Update CA certificates
+      ansible.builtin.command: update-ca-certificates
+      when: ansible_os_family != 'Darwin'
+      listen: update ca-certificates
+
     - name: Load kernel modules
       ansible.builtin.command: "modprobe {{ item }}"
       loop:

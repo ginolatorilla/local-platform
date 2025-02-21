@@ -158,6 +158,12 @@
         - kubelet
         - crio
 
+    - name: Configure Audit Policy
+      ansible.builtin.copy:
+        src: files/etc/kubernetes/audit-policy.yaml
+        dest: /etc/kubernetes/audit-policy.yaml
+        mode: "0644"
+
     - name: Configure kubeadm
       ansible.builtin.template:
         src: templates/etc/kubernetes/kubeadm.conf.j2

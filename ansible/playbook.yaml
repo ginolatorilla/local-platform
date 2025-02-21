@@ -188,7 +188,7 @@
 
     - name: Install single-node Kubernetes cluster with kubeadm
       ansible.builtin.command:
-        cmd: kubeadm init --config {{ kubeadm.dest }}
+        cmd: kubeadm init --config /etc/kubernetes/kubeadm.yaml
         creates: /etc/kubernetes/manifests/kube*.yaml
 
     - name: Get kubeconfig

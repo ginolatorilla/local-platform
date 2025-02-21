@@ -27,7 +27,7 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 ## Installation
 
 1. Change the variables in the inventory file at [ansible/inventory.yaml](./ansible/inventory.yaml).
-2. Run `./install.sh`.
+2. Run `./install.sh`. Call with `--check --diff` for a dry-run.
 
 ## Port forwarding
 

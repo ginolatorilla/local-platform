@@ -15,6 +15,7 @@ terraform {
 provider "vault" {
   address      = "https://vault.localhost"
   ca_cert_file = "../../outputs/certs/ownca.crt"
+  token        = var.token
 }
 
 variable "token" {

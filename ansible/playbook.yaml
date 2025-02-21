@@ -402,6 +402,7 @@
         wait_condition:
           type: PodReadyToStartContainers
           status: "True"
+      retries: 10
 
     - name: Check Vault Status
       kubernetes.core.k8s_exec:

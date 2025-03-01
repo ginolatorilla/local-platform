@@ -85,13 +85,23 @@
 
 - name: Install Kubernetes
   tags: kubeadm
-  hosts: kubernetes
+  hosts: k8s
   vars:
-    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/kubernetes/ssh.config' }}"
+    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/' + virtual_machine.name + '/ssh.config' }}"
   vars_files:
     - common_vars.yaml
   become: true
   tasks:
+    - name: Install own CA certificate
+      ansible.builtin.copy:
+        src: "{{ outputs_dir }}/certs/ownca.crt"
+        dest: /usr/local/share/ca-certificates/ownca.crt
+        mode: "0644"
+      notify: update ca-certificates
+
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
+
     - name: Install required tools
       ansible.builtin.apt:
         update_cache: true
@@ -158,6 +168,12 @@
         - kubelet
         - crio
 
+    - name: Configure Audit Policy
+      ansible.builtin.copy:
+        src: files/etc/kubernetes/audit-policy.yaml
+        dest: /etc/kubernetes/audit-policy.yaml
+        mode: "0644"
+
     - name: Configure kubeadm
       ansible.builtin.template:
         src: templates/etc/kubernetes/kubeadm.conf.j2
@@ -167,12 +183,19 @@
       notify:
         - reset cluster
 
+    - name: Trigger reset cluster
+      ansible.builtin.debug:
+        msg: "{{ 'Cluster reset triggered' if reset_cluster is defined and reset_cluster else 'Cluster reset not required' }}"
+      changed_when: reset_cluster is defined and reset_cluster
+      notify:
+        - reset cluster
+
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers
 
     - name: Install single-node Kubernetes cluster with kubeadm
       ansible.builtin.command:
-        cmd: kubeadm init --config {{ kubeadm.dest }}
+        cmd: kubeadm init --config /etc/kubernetes/kubeadm.yaml
         creates: /etc/kubernetes/manifests/kube*.yaml
 
     - name: Get kubeconfig
@@ -210,6 +233,11 @@
         mode: "0644"
 
   handlers:
+    - name: Update CA certificates
+      ansible.builtin.command: update-ca-certificates
+      when: ansible_os_family != 'Darwin'
+      listen: update ca-certificates
+
     - name: Load kernel modules
       ansible.builtin.command: "modprobe {{ item }}"
       loop:
@@ -294,14 +322,6 @@
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers
 
-    - name: Untaint the node
-      kubernetes.core.k8s_taint:
-        state: absent
-        name: "{{ virtual_machine.name }}"
-        taints:
-          - key: node-role.kubernetes.io/control-plane
-            effect: NoSchedule
-
     - name: Deploy ArgoCD
       kubernetes.core.helm:
         name: argocd
@@ -370,6 +390,20 @@
                   maxDuration: 3m
             revisionHistoryLimit: 0
 
+    - name: Wait for Vault pod to be started
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: vault-0
+            namespace: vault
+        wait: true
+        wait_condition:
+          type: PodReadyToStartContainers
+          status: "True"
+      retries: 10
+
     - name: Check Vault Status
       kubernetes.core.k8s_exec:
         namespace: vault
@@ -377,10 +411,10 @@
         container: vault
         command: vault status -tls-skip-verify
       register: vault_status
-      ignore_errors: true
+      retries: 3
       notify: unseal vault
       changed_when: vault_status.rc != 0
-      failed_when: vault_status.rc == 1 # 2 means vault is sealed sealed
+      failed_when: vault_status.rc == 1 # 2 means vault is sealed
 
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers
@@ -417,6 +451,19 @@
             vault_unseal_keys: "{{ vault_operator_init.stdout | regex_findall('Unseal Key [0-9]+: ([a-zA-Z0-9+/=]+)') }}"
           listen: unseal vault
 
+        - name: Parse root token
+          set_fact:
+            vault_root_token: "{{ vault_operator_init.stdout | regex_findall('Initial Root Token: ([a-zA-Z0-9.+/=]+)') }}"
+          listen: unseal vault
+
+        - name: Save Vault root token to Terraform repo
+          ansible.builtin.copy:
+            content: |-
+              token="{{ vault_root_token[0] }}"
+            dest: "../terraform/vault/local.auto.tfvars"
+            mode: "0644"
+          listen: unseal vault
+
         - name: Unseal Vault
           kubernetes.core.k8s_exec:
             namespace: vault
@@ -427,3 +474,23 @@
           loop: "{{ vault_unseal_keys[:3] }}"
           changed_when: vault_operator_unseal.rc != 0
           listen: unseal vault
+
+- name: Configure apps with Terraform
+  tags: terraform
+  hosts: localhost
+  vars_files:
+    - common_vars.yaml
+  tasks:
+    - name: Run Terraform Init
+      ansible.builtin.command:
+        cmd: terraform init
+        chdir: ../terraform/vault
+      register: terraform_init
+      changed_when: terraform_init.rc != 0
+
+    - name: Run Terraform Apply
+      ansible.builtin.command:
+        cmd: terraform apply -auto-approve
+        chdir: ../terraform/vault
+      register: terraform_apply
+      changed_when: terraform_apply.rc != 0

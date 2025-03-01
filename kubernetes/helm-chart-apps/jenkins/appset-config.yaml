@@ -1,5 +1,5 @@
 helmChart: jenkins
-helmChartVersion: 5.7.15
+helmChartVersion: 5.8.17
 helmChartURL: https://charts.jenkins.io
 namespace: jenkins
 syncWave: 0

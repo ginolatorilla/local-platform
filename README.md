@@ -22,11 +22,32 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 ## Requirements
 
 - Python 3
+- Terraform
 
-## Installation
+## Operations
+
+### Installation
 
 1. Change the variables in the inventory file at [ansible/inventory.yaml](./ansible/inventory.yaml).
 2. Run `./install.sh`.
+
+### Dry run
+
+```sh
+./install.sh --check --dir
+```
+
+### Reset the cluster
+
+```sh
+./install.sh -e cluster_reset=1
+```
+
+### Update cluster resources
+
+```sh
+./install.sh --tags apps
+```
 
 ## Port forwarding
 

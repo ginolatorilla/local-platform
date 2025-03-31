@@ -1,8 +1,9 @@
+---
 outputs_dir: "{{ (playbook_dir + '/../outputs') | realpath }}"
 
 virtual_machine:
   name: k8s
-  cpus: 11
+  cpus: 12
   memory: 48G
   disk: 40G
 

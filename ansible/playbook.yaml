@@ -326,6 +326,17 @@
         provider: ownca
       register: registry_crt
 
+    - name: Modify /etc/hosts on Kubernetes node
+      delegate_to: k8s
+      become: true
+      vars:
+        ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/' + virtual_machine.name + '/ssh.config' }}"
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regex: '([\da-fA-F:.]+)\s+host.lima.internal'
+        line: '\1 host.lima.internal {{ registry.hosts | join(" ") }}'
+        backrefs: true
+
 - name: Deploy apps in Kubernetes
   tags: apps
   hosts: localhost

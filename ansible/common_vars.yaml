@@ -17,3 +17,8 @@ ingress_controller:
   node_ports:
     http: 30080
     https: 30443
+
+registry:
+  hosts:
+    - registry
+    - registry.local

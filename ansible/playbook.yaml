@@ -1,5 +1,7 @@
 - name: Preparations
-  tags: prepare
+  tags:
+    - prepare
+    - registry
   hosts: localhost
   vars_files:
     - common_vars.yaml
@@ -282,6 +284,47 @@
         command: sh -c 'kill -HUP $(pidof haproxy)'
       ignore_errors: true
       listen: reload haproxy
+
+- name: Container registry
+  tags: registry
+  hosts: localhost
+  vars_files:
+    - common_vars.yaml
+  tasks:
+    - name: Create signing key for Registry
+      community.crypto.openssl_privatekey:
+        path: "{{ outputs_dir }}/certs/registry.key"
+      register: registry_privatekey
+
+    - name: Create CSR for Registry
+      community.crypto.openssl_csr:
+        path: "{{ outputs_dir }}/certs/registry.csr"
+        privatekey_path: "{{ registry_privatekey.filename }}"
+        common_name: "My Container Registry"
+        create_subject_key_identifier: true
+        use_common_name_for_san: false
+        subject_alt_name: "{{ registry.hosts | map('regex_replace', '^', 'DNS:') | list }}"
+        basic_constraints:
+          - "CA:TRUE"
+        basic_constraints_critical: true
+        key_usage:
+          - keyCertSign
+        key_usage_critical: true
+      register: registry_csr
+
+    - name: debug
+      ansible.builtin.debug:
+        msg: "{{ registry_privatekey.keys() | list }}"
+
+    - name: Create Registry TLS certificate
+      community.crypto.x509_certificate:
+        path: "{{ outputs_dir }}/certs/registry.crt"
+        privatekey_path: "{{ registry_privatekey.filename }}"
+        csr_path: "{{ registry_csr.filename }}"
+        ownca_path: "{{ ownca_crt.filename }}"
+        ownca_privatekey_path: "{{ ownca_privatekey.filename }}"
+        provider: ownca
+      register: registry_crt
 
 - name: Deploy apps in Kubernetes
   tags: apps

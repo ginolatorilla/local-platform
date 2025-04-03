@@ -19,6 +19,10 @@ ingress_controller:
     https: 30443
 
 registry:
+  docker_context: lima
+  username: docker
+  password: docker
+  port: 5000
   hosts:
     - registry
     - registry.local

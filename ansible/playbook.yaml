@@ -306,10 +306,6 @@
         subject_alt_name: "{{ registry.hosts | map('regex_replace', '^', 'DNS:') | list }}"
       register: registry_csr
 
-    - name: debug
-      ansible.builtin.debug:
-        msg: "{{ registry_privatekey.keys() | list }}"
-
     - name: Create Registry TLS certificate
       community.crypto.x509_certificate:
         path: "{{ outputs_dir }}/certs/registry.crt"
@@ -319,6 +315,14 @@
         ownca_privatekey_path: "{{ ownca_privatekey.filename }}"
         provider: ownca
       register: registry_crt
+
+    - name: Setup basic auth for Registry
+      community.general.htpasswd:
+        path: "{{ outputs_dir }}/registry.htpasswd"
+        name: "{{ registry.username }}"
+        password: "{{ registry.password }}"
+        hash_scheme: bcrypt
+      register: registry_htpasswd
 
     - name: Modify /etc/hosts on Kubernetes node
       delegate_to: k8s
@@ -330,6 +334,40 @@
         regex: '([\da-fA-F:.]+)\s+host.lima.internal'
         line: '\1 host.lima.internal {{ registry.hosts | join(" ") }}'
         backrefs: true
+
+    - name: Stop existing Registry service
+      community.docker.docker_compose_v2:
+        cli_context: "{{ registry.docker_context }}"
+        project_name: registry
+        definition:
+          services:
+            registry:
+        state: absent
+        wait: true
+
+    - name: Launch the Registry Service
+      community.docker.docker_compose_v2:
+        cli_context: "{{ registry.docker_context }}"
+        project_name: registry
+        definition:
+          services:
+            registry:
+              restart: always
+              image: registry:2.8
+              ports:
+               - "{{ registry.port }}:443"
+              volumes:
+                - "{{ outputs_dir }}/registry:/var/lib/registry"
+                - "{{ outputs_dir }}/certs:/certs"
+                - "{{ outputs_dir }}/registry.htpasswd:/auth/htpasswd"
+              environment:
+                REGISTRY_HTTP_ADDR: "0.0.0.0:443"
+                REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/registry.crt"
+                REGISTRY_HTTP_TLS_KEY: "/certs/registry.key"
+                REGISTRY_AUTH: "htpasswd"
+                REGISTRY_AUTH_HTPASSWD_REALM: "registry"
+                REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
+        wait: true
 
 - name: Deploy apps in Kubernetes
   tags: apps

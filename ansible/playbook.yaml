@@ -304,12 +304,6 @@
         create_subject_key_identifier: true
         use_common_name_for_san: false
         subject_alt_name: "{{ registry.hosts | map('regex_replace', '^', 'DNS:') | list }}"
-        basic_constraints:
-          - "CA:TRUE"
-        basic_constraints_critical: true
-        key_usage:
-          - keyCertSign
-        key_usage_critical: true
       register: registry_csr
 
     - name: debug

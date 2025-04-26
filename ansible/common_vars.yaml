@@ -22,7 +22,7 @@ registry:
   docker_context: lima
   username: docker
   password: docker
-  port: 5000
+  port: 5001
   hosts:
     - registry
     - registry.local

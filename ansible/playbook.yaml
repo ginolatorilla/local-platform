@@ -98,7 +98,7 @@
   tags: kubeadm
   hosts: k8s
   vars:
-    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/' + virtual_machine.name + '/ssh.config' }}"
+    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/k8s' + '/ssh.config' }}"
   vars_files:
     - common_vars.yaml
   become: true
@@ -289,7 +289,7 @@
       become: false
       kubernetes.core.k8s_exec:
         namespace: kube-system
-        pod: haproxy-{{ virtual_machine.name }}
+        pod: haproxy-k8s
         command: sh -c 'kill -HUP $(pidof haproxy)'
       ignore_errors: true
       listen: reload haproxy
@@ -337,7 +337,7 @@
       delegate_to: k8s
       become: true
       vars:
-        ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/' + virtual_machine.name + '/ssh.config' }}"
+        ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/k8s' + '/ssh.config' }}"
       ansible.builtin.lineinfile:
         path: /etc/hosts
         regex: '([\da-fA-F:.]+)\s+host.lima.internal'

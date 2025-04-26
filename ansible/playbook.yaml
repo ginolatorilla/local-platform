@@ -51,39 +51,48 @@
       ansible.builtin.debug:
         msg: "Please install the CA certificate, which you can find here: {{ ownca_crt.filename | realpath }}"
 
-- name: Create Lima VM
+- name: Create Lima VMs
   tags: compute
   hosts: localhost
   vars_files:
     - common_vars.yaml
   tasks:
     - name: Create Lima config directory
+      loop: "{{ virtual_machine | dict2items }}"
       ansible.builtin.file:
-        path: "~/.lima/{{ virtual_machine.name }}"
+        path: "~/.lima/{{ item.key }}"
         state: directory
-      register: virtual_machine_config_dir
 
     - name: Render virtual machine configuration
+      loop: "{{ virtual_machine | dict2items }}"
       ansible.builtin.template:
-        src: templates/lima.yaml.j2
-        dest: "{{ virtual_machine_config_dir.path }}/lima.yaml"
-      register: virtual_machine_config
-      notify: restart vm
+        src: templates/{{ item.key }}-lima.yaml.j2
+        dest: "~/.lima/{{ item.key }}/lima.yaml"
+      notify: restart vm {{ item.key }}
+      vars:
+        vm: "{{ item.value }}"
+        name: "{{ item.key }}"
 
     - name: Wait for handlers
       ansible.builtin.meta: flush_handlers
 
     - name: Start virtual machine
+      loop: "{{ virtual_machine | dict2items }}"
       ansible.builtin.command:
-        cmd: limactl start --name {{ virtual_machine.name }} --tty=false
-        creates: "{{ virtual_machine_config_dir.path }}/*.pid"
+        cmd: limactl start --name {{ item.key }} --tty=false
+        creates: "~/.lima/{{ item.key }}/*.pid"
 
   handlers:
-    - name: Stop virtual machine
+    - name: Stop virtual machine (k8s)
       ansible.builtin.command:
-        cmd: limactl stop {{ virtual_machine.name }} --force
-        removes: "{{ virtual_machine_config_dir.path }}/*.pid"
-      listen: restart vm
+        cmd: limactl stop k8s --force
+        removes: "~/lima/k8s/*.pid"
+      listen: restart vm k8s
+    - name: Stop virtual machine (docker)
+      ansible.builtin.command:
+        cmd: limactl stop docker --force
+        removes: "~/lima/docker/*.pid"
+      listen: restart vm docker
 
 - name: Install Kubernetes
   tags: kubeadm
@@ -355,7 +364,7 @@
               restart: always
               image: registry:2.8
               ports:
-               - "{{ registry.port }}:443"
+                - "{{ registry.port }}:443"
               volumes:
                 - "{{ outputs_dir }}/registry:/var/lib/registry"
                 - "{{ outputs_dir }}/certs:/certs"

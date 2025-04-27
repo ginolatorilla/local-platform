@@ -5,3 +5,6 @@ nodePathMap:
   - node: DEFAULT_PATH_FOR_NON_LISTED_NODES
     paths:
       - /mnt/data
+
+image:
+  repository: registry:5001/docker.io/rancher/local-path-provisioner

@@ -12,6 +12,8 @@
           - kubernetes-cli
           - helm
           - lima
+          - docker
+          - skopeo
       become: "{{ ansible_os_family != 'Darwin' }}"
 
     - name: Create certificate outputs directory

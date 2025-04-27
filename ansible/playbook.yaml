@@ -94,6 +94,97 @@
         removes: "~/lima/docker/*.pid"
       listen: restart vm docker
 
+- name: Container registry
+  tags: registry
+  hosts: localhost
+  vars_files:
+    - common_vars.yaml
+  tasks:
+    - name: Create signing key for Registry
+      community.crypto.openssl_privatekey:
+        path: "{{ outputs_dir }}/certs/registry.key"
+      register: registry_privatekey
+
+    - name: Create CSR for Registry
+      community.crypto.openssl_csr:
+        path: "{{ outputs_dir }}/certs/registry.csr"
+        privatekey_path: "{{ registry_privatekey.filename }}"
+        common_name: "My Container Registry"
+        create_subject_key_identifier: true
+        use_common_name_for_san: false
+        subject_alt_name: "{{ default_sans + (registry.hosts | map('regex_replace', '^', 'DNS:') | list) }}"
+      register: registry_csr
+      vars:
+        default_sans:
+          - DNS:registry
+          - DNS:host.lima.internal
+          - IP:192.168.5.2
+
+    - name: Create Registry TLS certificate
+      community.crypto.x509_certificate:
+        path: "{{ outputs_dir }}/certs/registry.crt"
+        privatekey_path: "{{ registry_privatekey.filename }}"
+        csr_path: "{{ registry_csr.filename }}"
+        ownca_path: "{{ ownca_crt.filename }}"
+        ownca_privatekey_path: "{{ ownca_privatekey.filename }}"
+        provider: ownca
+      register: registry_crt
+
+    - name: Setup basic auth for Registry
+      when: registry.username is defined and registry.password is defined
+      community.general.htpasswd:
+        path: "{{ outputs_dir }}/registry.htpasswd"
+        name: "{{ registry.username }}"
+        password: "{{ registry.password }}"
+        hash_scheme: bcrypt
+      register: registry_htpasswd
+
+    - name: Modify /etc/hosts on Kubernetes node
+      delegate_to: k8s
+      become: true
+      vars:
+        ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/k8s' + '/ssh.config' }}"
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regex: '([\da-fA-F:.]+)\s+host.lima.internal'
+        line: '\1 host.lima.internal {{ registry.hosts | join(" ") }}'
+        backrefs: true
+
+    - name: Stop existing Registry service
+      community.docker.docker_compose_v2:
+        cli_context: "{{ registry.docker_context }}"
+        project_name: registry
+        definition:
+          services:
+            registry:
+        state: absent
+        wait: true
+
+    - name: Launch the Registry Service
+      community.docker.docker_compose_v2:
+        cli_context: "{{ registry.docker_context }}"
+        project_name: registry
+        definition:
+          services:
+            registry:
+              container_name: registry
+              restart: always
+              image: registry:2.8
+              ports:
+                - "{{ registry.port }}:443"
+              volumes:
+                - "{{ outputs_dir }}/registry:/var/lib/registry"
+                - "{{ outputs_dir }}/certs:/certs"
+                - "{{ outputs_dir }}/registry.htpasswd:/auth/htpasswd"
+              environment:
+                REGISTRY_HTTP_ADDR: "0.0.0.0:443"
+                REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/registry.crt"
+                REGISTRY_HTTP_TLS_KEY: "/certs/registry.key"
+                # REGISTRY_AUTH: htpasswd
+                # REGISTRY_AUTH_HTPASSWD_REALM: "registry"
+                # REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
+        wait: true
+
 - name: Install Kubernetes
   tags: kubeadm
   hosts: k8s
@@ -293,97 +384,6 @@
         command: sh -c 'kill -HUP $(pidof haproxy)'
       ignore_errors: true
       listen: reload haproxy
-
-- name: Container registry
-  tags: registry
-  hosts: localhost
-  vars_files:
-    - common_vars.yaml
-  tasks:
-    - name: Create signing key for Registry
-      community.crypto.openssl_privatekey:
-        path: "{{ outputs_dir }}/certs/registry.key"
-      register: registry_privatekey
-
-    - name: Create CSR for Registry
-      community.crypto.openssl_csr:
-        path: "{{ outputs_dir }}/certs/registry.csr"
-        privatekey_path: "{{ registry_privatekey.filename }}"
-        common_name: "My Container Registry"
-        create_subject_key_identifier: true
-        use_common_name_for_san: false
-        subject_alt_name: "{{ default_sans + (registry.hosts | map('regex_replace', '^', 'DNS:') | list) }}"
-      register: registry_csr
-      vars:
-        default_sans:
-          - DNS:registry
-          - DNS:host.lima.internal
-          - IP:192.168.5.2
-
-    - name: Create Registry TLS certificate
-      community.crypto.x509_certificate:
-        path: "{{ outputs_dir }}/certs/registry.crt"
-        privatekey_path: "{{ registry_privatekey.filename }}"
-        csr_path: "{{ registry_csr.filename }}"
-        ownca_path: "{{ ownca_crt.filename }}"
-        ownca_privatekey_path: "{{ ownca_privatekey.filename }}"
-        provider: ownca
-      register: registry_crt
-
-    - name: Setup basic auth for Registry
-      when: registry.username is defined and registry.password is defined
-      community.general.htpasswd:
-        path: "{{ outputs_dir }}/registry.htpasswd"
-        name: "{{ registry.username }}"
-        password: "{{ registry.password }}"
-        hash_scheme: bcrypt
-      register: registry_htpasswd
-
-    - name: Modify /etc/hosts on Kubernetes node
-      delegate_to: k8s
-      become: true
-      vars:
-        ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') + '/.lima/k8s' + '/ssh.config' }}"
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        regex: '([\da-fA-F:.]+)\s+host.lima.internal'
-        line: '\1 host.lima.internal {{ registry.hosts | join(" ") }}'
-        backrefs: true
-
-    - name: Stop existing Registry service
-      community.docker.docker_compose_v2:
-        cli_context: "{{ registry.docker_context }}"
-        project_name: registry
-        definition:
-          services:
-            registry:
-        state: absent
-        wait: true
-
-    - name: Launch the Registry Service
-      community.docker.docker_compose_v2:
-        cli_context: "{{ registry.docker_context }}"
-        project_name: registry
-        definition:
-          services:
-            registry:
-              container_name: registry
-              restart: always
-              image: registry:2.8
-              ports:
-                - "{{ registry.port }}:443"
-              volumes:
-                - "{{ outputs_dir }}/registry:/var/lib/registry"
-                - "{{ outputs_dir }}/certs:/certs"
-                - "{{ outputs_dir }}/registry.htpasswd:/auth/htpasswd"
-              environment:
-                REGISTRY_HTTP_ADDR: "0.0.0.0:443"
-                REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/registry.crt"
-                REGISTRY_HTTP_TLS_KEY: "/certs/registry.key"
-                # REGISTRY_AUTH: htpasswd
-                # REGISTRY_AUTH_HTPASSWD_REALM: "registry"
-                # REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
-        wait: true
 
 - name: Deploy apps in Kubernetes
   tags: apps

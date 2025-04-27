@@ -326,6 +326,7 @@
       register: registry_crt
 
     - name: Setup basic auth for Registry
+      when: registry.username is defined and registry.password is defined
       community.general.htpasswd:
         path: "{{ outputs_dir }}/registry.htpasswd"
         name: "{{ registry.username }}"
@@ -361,6 +362,7 @@
         definition:
           services:
             registry:
+              container_name: registry
               restart: always
               image: registry:2.8
               ports:
@@ -373,7 +375,7 @@
                 REGISTRY_HTTP_ADDR: "0.0.0.0:443"
                 REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/registry.crt"
                 REGISTRY_HTTP_TLS_KEY: "/certs/registry.key"
-                REGISTRY_AUTH: "htpasswd"
+                REGISTRY_AUTH: "{{ (registry.username is defined and registry.password is defined) | ternary('htpasswd', '') }}"
                 REGISTRY_AUTH_HTPASSWD_REALM: "registry"
                 REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
         wait: true

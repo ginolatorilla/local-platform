@@ -24,8 +24,8 @@ ingress_controller:
 
 registry:
   docker_context: lima
-  username: docker
-  password: docker
+  # username: docker
+  # password: docker
   port: 5001
   hosts:
     - registry

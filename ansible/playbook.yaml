@@ -187,6 +187,12 @@
                 # REGISTRY_AUTH: htpasswd
                 # REGISTRY_AUTH_HTPASSWD_REALM: "registry"
                 # REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
+              healthcheck:
+                test: nc -z localhost 443
+                interval: 10s
+                timeout: 5s
+                retries: 3
+                start_period: 0s
         wait: true
 
     - name: Push Images

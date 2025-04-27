@@ -211,6 +211,8 @@
         - registry.k8s.io/etcd:3.5.15-0
         - quay.io/argoproj/argocd:v2.13.0
         - public.ecr.aws/docker/library/redis:7.4.1-alpine
+        - quay.io/tigera/operator:v1.32.7
+        - docker.io/calico/ctl:v3.27.3
 
       register: skopeo_copy
       changed_when: skopeo_copy.rc != 0
@@ -452,6 +454,8 @@
         release_namespace: tigera-operator
         create_namespace: true
         wait: true
+        values_files:
+          - ../kubernetes/helm-chart-apps/tigera-operator/values.yaml
 
     - name: Wait for Calico to be ready
       kubernetes.core.k8s:

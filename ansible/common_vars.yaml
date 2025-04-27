@@ -27,5 +27,4 @@ registry:
   # username: docker
   # password: docker
   port: 5001
-  hosts:
-    - registry
+  hosts: []

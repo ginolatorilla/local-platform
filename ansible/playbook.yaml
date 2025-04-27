@@ -312,8 +312,13 @@
         common_name: "My Container Registry"
         create_subject_key_identifier: true
         use_common_name_for_san: false
-        subject_alt_name: "{{ registry.hosts | map('regex_replace', '^', 'DNS:') | list }}"
+        subject_alt_name: "{{ default_sans + (registry.hosts | map('regex_replace', '^', 'DNS:') | list) }}"
       register: registry_csr
+      vars:
+        default_sans:
+          - DNS:registry
+          - DNS:host.lima.internal
+          - IP:192.168.5.2
 
     - name: Create Registry TLS certificate
       community.crypto.x509_certificate:

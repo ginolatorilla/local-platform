@@ -28,5 +28,4 @@ registry:
   # password: docker
   port: 5001
   hosts:
-    - registry
     - registry.local

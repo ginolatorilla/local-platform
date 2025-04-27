@@ -120,7 +120,9 @@
         default_sans:
           - DNS:registry
           - DNS:host.lima.internal
+          - DNS:localhost
           - IP:192.168.5.2
+          - IP:127.0.0.1
 
     - name: Create Registry TLS certificate
       community.crypto.x509_certificate:
@@ -186,6 +188,21 @@
                 # REGISTRY_AUTH_HTPASSWD_REALM: "registry"
                 # REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
         wait: true
+
+    - name: Push Images
+      ansible.builtin.command: >-
+        skopeo --override-os linux
+        copy --dest-tls-verify=false
+        docker://{{ item }}
+        docker://localhost:{{ registry.port }}/{{ item }}
+      loop:
+        - registry.k8s.io/kube-apiserver:v1.30.12
+        - registry.k8s.io/kube-controller-manager:v1.30.12
+        - registry.k8s.io/kube-scheduler:v1.30.12
+        - registry.k8s.io/kube-proxy:v1.30.12
+        - registry.k8s.io/coredns/coredns:v1.11.3
+        - registry.k8s.io/pause:3.9
+        - registry.k8s.io/etcd:3.5.15-0
 
 - name: Install Kubernetes
   tags: kubeadm

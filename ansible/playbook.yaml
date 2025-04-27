@@ -375,9 +375,9 @@
                 REGISTRY_HTTP_ADDR: "0.0.0.0:443"
                 REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/registry.crt"
                 REGISTRY_HTTP_TLS_KEY: "/certs/registry.key"
-                REGISTRY_AUTH: "{{ (registry.username is defined and registry.password is defined) | ternary('htpasswd', '') }}"
-                REGISTRY_AUTH_HTPASSWD_REALM: "registry"
-                REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
+                # REGISTRY_AUTH: htpasswd
+                # REGISTRY_AUTH_HTPASSWD_REALM: "registry"
+                # REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
         wait: true
 
 - name: Deploy apps in Kubernetes

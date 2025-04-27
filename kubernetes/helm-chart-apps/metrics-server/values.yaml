@@ -3,4 +3,4 @@ args:
   - --kubelet-insecure-tls
 
 image:
-  repository: registry:5001/registry.k8s.io/metrics-server
+  repository: registry:5001/registry.k8s.io/metrics-server/metrics-server

@@ -209,6 +209,8 @@
         - registry.k8s.io/coredns/coredns:v1.11.3
         - registry.k8s.io/pause:3.9
         - registry.k8s.io/etcd:3.5.15-0
+      register: skopeo_copy
+      changed_when: skopeo_copy.rc != 0
 
 - name: Install Kubernetes
   tags: kubeadm
@@ -284,6 +286,16 @@
           - kubeadm
           - kubectl
           - cri-o
+
+    - name: Configure CRIO
+      ansible.builtin.copy:
+        src: files/etc/crio/20-crio.conf
+        dest: /etc/crio/crio.conf.d/20-crio.conf
+        mode: "0644"
+      notify: reload crio
+
+    - name: Wait for handlers
+      ansible.builtin.meta: flush_handlers
 
     - name: Launch services
       ansible.builtin.systemd_service:
@@ -379,6 +391,12 @@
       register: cluster_bootstrap_sysctl
       changed_when: cluster_bootstrap_sysctl.rc != 0
       listen: sysctl reconfig
+
+    - name: Reload CRIO
+      ansible.builtin.command: systemctl reload crio
+      register: systemctl_reload_crio
+      changed_when: systemctl_reload_crio.rc != 0
+      listen: reload crio
 
     - name: Reset cluster
       ansible.builtin.shell:

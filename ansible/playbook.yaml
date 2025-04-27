@@ -209,6 +209,9 @@
         - registry.k8s.io/coredns/coredns:v1.11.3
         - registry.k8s.io/pause:3.9
         - registry.k8s.io/etcd:3.5.15-0
+        - quay.io/argoproj/argocd:v2.13.0
+        - public.ecr.aws/docker/library/redis:7.4.1-alpine
+
       register: skopeo_copy
       changed_when: skopeo_copy.rc != 0
 

@@ -222,6 +222,17 @@
         - docker.io/calico/node-driver-registrar:v3.27.3
         - docker.io/calico/pod2daemon-flexvol:v3.27.3
         - docker.io/haproxy:2.1.4
+        - quay.io/jetstack/cert-manager-controller:v1.16.1
+        - quay.io/jetstack/cert-manager-webhook:v1.16.1
+        - quay.io/jetstack/cert-manager-cainjector:v1.16.1
+        - docker.io/jenkins/jenkins:2.492.1-jdk17
+        - docker.io/jenkins/inbound-agent:3307.v632ed11b_3a_c7-2
+        - docker.io/kiwigrid/k8s-sidecar:1.30.1
+        - docker.io/rancher/local-path-provisioner:v0.0.30
+        - registry.k8s.io/metrics-server/metrics-server:v0.7.2
+        - docker.io/hashicorp/vault:1.16.1
+        - docker.io/hashicorp/vault-k8s:1.4.1
+        - docker.io/nginx/nginx-ingress:3.5.0
 
       register: skopeo_copy
       changed_when: skopeo_copy.rc != 0

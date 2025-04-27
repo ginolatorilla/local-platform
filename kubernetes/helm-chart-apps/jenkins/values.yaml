@@ -13,3 +13,15 @@ controller:
       - secretName: jenkins-tls
         hosts:
           - jenkins.localhost
+
+  image:
+    registry: registry:5001/docker.io
+
+  sidecars:
+    configAutoReload:
+      image:
+        registry: registry:5001/docker.io
+
+agent:
+  image:
+    repository: "registry:5001/docker.io/jenkins/inbound-agent"

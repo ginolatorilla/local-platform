@@ -1,3 +1,6 @@
 args:
   # See https://github.com/kubernetes/kubeadm/issues/1223#issuecomment-549416594
   - --kubelet-insecure-tls
+
+image:
+  repository: registry:5001/registry.k8s.io/metrics-server/metrics-server

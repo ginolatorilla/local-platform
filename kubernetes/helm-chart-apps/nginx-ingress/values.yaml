@@ -6,6 +6,7 @@ controller:
       set-real-ip-from: "127.0.0.1"
       real-ip-header: "X-Forwarded-For"
       client-max-body-size: "0"
+
   service:
     type: NodePort
     httpPort:
@@ -15,3 +16,6 @@ controller:
 
   extraArgs:
     report-ingress-status:
+
+  image:
+    repository: registry:5001/docker.io/nginx/nginx-ingress

@@ -18,4 +18,4 @@ controller:
     report-ingress-status:
 
   image:
-    repository: registry:5001/docker.io/nginx
+    repository: registry:5001/docker.io/nginx/nginx-ingress

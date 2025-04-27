@@ -2,10 +2,14 @@
 outputs_dir: "{{ (playbook_dir + '/../outputs') | realpath }}"
 
 virtual_machine:
-  name: k8s
-  cpus: 12
-  memory: 48G
-  disk: 40G
+  k8s:
+    cpus: 12
+    memory: 48G
+    disk: 200G
+  docker:
+    cpus: 4
+    memory: 8G
+    disk: 100G
 
 crio_version: "1.30"
 kubernetes_version: "1.30"
@@ -17,3 +21,10 @@ ingress_controller:
   node_ports:
     http: 30080
     https: 30443
+
+registry:
+  docker_context: lima
+  # username: docker
+  # password: docker
+  port: 5001
+  hosts: []

@@ -1,0 +1,9 @@
+tigeraOperator:
+  image: quay.io/tigera/operator
+  registry: registry:5001
+
+calicoctl:
+  image: registry:5001/docker.io/calico/ctl
+
+installation:
+  registry: registry:5001/docker.io/

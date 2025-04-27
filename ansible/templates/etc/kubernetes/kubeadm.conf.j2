@@ -30,11 +30,12 @@ apiServer:
 certificatesDir: /etc/kubernetes/pki
 clusterName: {{ kubernetes_cluster_name }}
 controllerManager: {}
-dns: {}
+dns:
+  imageRepository: registry:{{ registry.port }}/registry.k8s.io/coredns
 etcd:
   local:
     dataDir: /var/lib/etcd
-imageRepository: registry.k8s.io
+imageRepository: registry:{{ registry.port }}/registry.k8s.io
 networking:
   dnsDomain: cluster.local
   serviceSubnet: {{ kubernetes_service_cidr }}

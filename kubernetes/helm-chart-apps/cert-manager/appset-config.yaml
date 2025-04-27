@@ -3,4 +3,4 @@ helmChartVersion: 1.16.1
 helmChartURL: https://charts.jetstack.io
 namespace: cert-manager
 syncWave: -99
-valuesRevision: HEAD
+valuesRevision: custom-registry

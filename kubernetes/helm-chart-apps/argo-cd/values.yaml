@@ -1,5 +1,7 @@
 global:
   domain: argocd.localhost
+  image:
+    repository: registry:5001/quay.io/argoproj/argocd
 
 server:
   ingress:
@@ -21,3 +23,7 @@ configs:
 
   params:
     server.insecure: true
+
+redis:
+  image:
+    repository: registry:5001/public.ecr.aws/docker/library/redis

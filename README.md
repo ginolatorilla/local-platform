@@ -18,6 +18,8 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 | Container networking version | 3.27.0                        |
 | Ingress controller           | Nginx                         |
 | Ingress controller version   | 3.4.3                         |
+| Private registry (cluster)   | registry:5001                 |
+| Private registry (host)      | localhost:5001                |
 
 ## Requirements
 
@@ -58,6 +60,7 @@ Lima automatically forwards the following localhost ports to the host:
 | 80   | HAProxy HTTP listener  |
 | 443  | HAProxy HTTPS listener |
 | 6443 | Kubernetes API         |
+| 5001 | Distribution registry  |
 
 ## Ingress
 

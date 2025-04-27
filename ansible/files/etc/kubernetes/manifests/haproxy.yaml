@@ -5,7 +5,7 @@ metadata:
   namespace: kube-system
 spec:
   containers:
-    - image: haproxy:2.1.4
+    - image: registry:5001/docker.io/haproxy:2.1.4
       name: haproxy
       volumeMounts:
         - mountPath: /usr/local/etc/haproxy/haproxy.cfg

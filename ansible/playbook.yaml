@@ -213,6 +213,7 @@
         - public.ecr.aws/docker/library/redis:7.4.1-alpine
         - quay.io/tigera/operator:v1.32.7
         - docker.io/calico/ctl:v3.27.3
+        - docker.io/haproxy:2.1.4
 
       register: skopeo_copy
       changed_when: skopeo_copy.rc != 0

@@ -4,3 +4,6 @@ tigeraOperator:
 
 calicoctl:
   image: registry:5001/docker.io/calico/ctl
+
+installation:
+  registry: registry:5001/docker.io/

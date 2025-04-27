@@ -213,6 +213,14 @@
         - public.ecr.aws/docker/library/redis:7.4.1-alpine
         - quay.io/tigera/operator:v1.32.7
         - docker.io/calico/ctl:v3.27.3
+        - docker.io/calico/apiserver:v3.27.3
+        - docker.io/calico/kube-controllers:v3.27.3
+        - docker.io/calico/node:v3.27.3
+        - docker.io/calico/cni:v3.27.3
+        - docker.io/calico/typha:v3.27.3
+        - docker.io/calico/csi:v3.27.3
+        - docker.io/calico/node-driver-registrar:v3.27.3
+        - docker.io/calico/pod2daemon-flexvol:v3.27.3
         - docker.io/haproxy:2.1.4
 
       register: skopeo_copy

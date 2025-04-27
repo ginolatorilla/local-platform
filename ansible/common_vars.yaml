@@ -5,7 +5,7 @@ virtual_machine:
   k8s:
     cpus: 12
     memory: 48G
-    disk: 40G
+    disk: 200G
   docker:
     cpus: 4
     memory: 8G

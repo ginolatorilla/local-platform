@@ -20,3 +20,12 @@ server:
   persistentVolumeClaimRetentionPolicy:
     whenDeleted: Retain
     whenScaled: Retain
+
+  image:
+    repository: registry:5001/docker.io/hashicorp/vault
+
+injector:
+  image:
+    repository: registry:5001/docker.io/hashicorp/vault-k8s
+  agentImage:
+    repository: registry:5001/docker.io/hashicorp/vault

@@ -222,6 +222,9 @@
         - docker.io/calico/node-driver-registrar:v3.27.3
         - docker.io/calico/pod2daemon-flexvol:v3.27.3
         - docker.io/haproxy:2.1.4
+        - quay.io/jetstack/cert-manager-controller:v1.16.1
+        - quay.io/jetstack/cert-manager-webhook:v1.16.1
+        - quay.io/jetstack/cert-manager-cainjector:v1.16.1
 
       register: skopeo_copy
       changed_when: skopeo_copy.rc != 0

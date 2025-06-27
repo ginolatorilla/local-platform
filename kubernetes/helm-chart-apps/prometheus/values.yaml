@@ -1,0 +1,19 @@
+configmapReload:
+  prometheus:
+    image:
+      repository: registry:5001/quay.io/prometheus-operator/prometheus-config-reloader
+
+server:
+  image:
+    repository: registry:5001/quay.io/prometheus/prometheus
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "ingress-cert-issuer"
+    hosts:
+      - prometheus.localhost
+    tls:
+      - secretName: prometheus-server-tls
+        hosts:
+          - prometheus.localhost

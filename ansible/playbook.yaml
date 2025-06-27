@@ -233,6 +233,8 @@
         - docker.io/hashicorp/vault:1.16.1
         - docker.io/hashicorp/vault-k8s:1.4.1
         - docker.io/nginx/nginx-ingress:3.5.0
+        - quay.io/prometheus-operator/prometheus-config-reloader:v0.83.0
+        - quay.io/prometheus/prometheus:v3.4.1
 
       register: skopeo_copy
       changed_when: skopeo_copy.rc != 0

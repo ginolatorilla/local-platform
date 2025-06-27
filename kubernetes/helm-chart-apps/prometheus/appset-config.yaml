@@ -3,4 +3,4 @@ helmChartVersion: 27.22.0
 helmChartURL: https://prometheus-community.github.io/helm-charts
 namespace: prometheus
 syncWave: -97
-valuesRevision: no-jenkins-add-prometheus
+valuesRevision: HEAD

@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kustomize-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+
+  generators:
+    - git:
+        repoURL: https://github.com/ginolatorilla/local-platform.git
+        revision: HEAD
+        files:
+          - path: kubernetes/kustomize-apps/*
+
+  template:
+    metadata:
+      name: "{{ .path.basenameNormalized }}"
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{ default "0" .syncWave }}'
+    spec:
+      project: default
+      destination:
+        name: in-cluster
+      source:
+        repoURL: https://github.com/ginolatorilla/local-platform.git
+        path: "{{ .path.path }}"
+        targetRevision: HEAD
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+          - RespectIgnoreDifferences=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+  syncPolicy:
+    preserveResourcesOnDeletion: false

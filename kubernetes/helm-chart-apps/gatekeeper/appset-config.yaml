@@ -1,0 +1,6 @@
+helmChart: gatekeeper
+helmChartVersion: 3.20.1
+helmChartURL: https://open-policy-agent.github.io/gatekeeper/charts
+namespace: local-path-provisioner
+syncWave: -97
+valuesRevision: HEAD

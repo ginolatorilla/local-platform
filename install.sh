@@ -71,7 +71,7 @@ limactl shell k8s exit >/dev/null || {
 
 KUBERNETES_VERSION=v1.35
 CRIO_VERSION=v1.35
-echo '☸️ Installing Kubernetes...'
+echo '☸️  Installing Kubernetes...'
 limactl shell --tty=false k8s <<EOT
 sudo su
 
@@ -130,3 +130,10 @@ fi
 echo -e "-- 💾 Saving kubeconfig to \033[32m$PROJECT_DIR/outputs/kubeconfig.conf\033[0m"
 cp /etc/kubernetes/admin.conf $PROJECT_DIR/outputs/kubeconfig.conf
 EOT
+
+echo '-- ✍️  Rewriting kubeconfig to use localhost:6443'
+sed -i '' 's/server: .*:6443/server: https:\/\/localhost:6443/g' $PROJECT_DIR/outputs/kubeconfig.conf
+
+echo '-- 🔍 Checking Kubernetes cluster'
+kubectl cluster-info --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf
+echo '✅ Kubernetes cluster installed'

@@ -28,6 +28,9 @@ mountType: virtiofs
 mounts:
   - location: "~"
     mountPoint: /mnt/user
+  - location: "~/.lima/k8s/data"
+    mountPoint: /mnt/data
+    writable: true
 
 provision:
   - mode: system

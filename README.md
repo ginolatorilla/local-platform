@@ -73,5 +73,6 @@ or use `<name>.localhost`.
 
 ## Filesystem mounts
 
-The `./outputs/vm-storage` folder is mounted to the VM as `/mnt/data`. The PV provisioner (based from Rancher)
+The `~/.lima/k8s/data` folder is mounted to the VM as `/mnt/data`. The PV provisioner (based from Rancher)
 will mount volumes to this directory, ensuring application data will survive if the cluster is destroyed.
+This will also contain the Kubernetes API server audit logs.

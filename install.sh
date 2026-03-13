@@ -141,8 +141,14 @@ echo '---   ✅ Kubernetes cluster installed'
 echo '=== 📦 Installing cluster apps...'
 helm repo add projectcalico https://docs.tigera.io/calico/charts
 helm upgrade --install tigera-operator projectcalico/tigera-operator --version v3.27.3 \
-  --namespace tigera-operator --create-namespace --wait --values $PROJECT_DIR/kubernetes/helm-chart-apps/tigera-operator/values.yaml
+  --namespace tigera-operator --create-namespace \
+  --values $PROJECT_DIR/kubernetes/helm-chart-apps/tigera-operator/values.yaml \
+  --wait --atomic
 kubectl wait --for=condition=ready installation.operator.tigera.io/default --timeout=300s
 kubectl rollout restart deployment coredns -n kube-system
 
+helm upgrade --install argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 7.7.3 \
+  --namespace argocd --create-namespace \
+  --values $PROJECT_DIR/kubernetes/helm-chart-apps/argo-cd/values.yaml \
+  --wait --atomic
 echo '--- ✅ Cluster apps installed'

@@ -168,4 +168,4 @@ kubectl get secret own-ca --namespace cert-manager >/dev/null 2>&1 || kubectl cr
 echo '--- ▶️  Deploying all other apps with ArgoCD...'
 kubectl apply -f $PROJECT_DIR/kubernetes/argocd-app-of-apps.yaml
 
-echo '--- ✅ Cluster apps installed'
+$PROJECT_DIR/unseal-vault.sh

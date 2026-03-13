@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_DIR="$(readlink -f $(dirname "${BASH_SOURCE[0]}"))"
 
 echo '=== 👀 Checking if required tools are installed...'
-for tool in kubectl helm lima docker skopeo htpasswd; do
+for tool in kubectl sed lima; do
   if command -v "$tool" > /dev/null; then
     echo "--- ✅ $tool is installed"
   else

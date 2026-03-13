@@ -15,4 +15,6 @@ done
 
 limactl stop k8s --tty=false -f
 cp -f $PROJECT_DIR/k8s.lima.yaml ~/.lima/k8s/lima.yaml
-limactl start --name k8s --tty=false
+limactl start --name k8s --tty=false \
+  --mount $PROJECT_DIR/outputs:w \
+  --mount $PROJECT_DIR/kubeadm

@@ -65,18 +65,52 @@ echo '🔧 Setting up Kubernetes cluster...'
 echo '-- 🖥️️️️  Starting Kubernetes Control Plane VM...'
 limactl shell k8s exit >/dev/null || {
     limactl start --name k8s $PROJECT_DIR/k8s.lima.yaml --tty=false \
-        --mount $PROJECT_DIR/outputs:w
+        --mount $PROJECT_DIR/outputs:w \
+        --mount $PROJECT_DIR/kubeadm
 }
 
+KUBERNETES_VERSION=v1.35
+CRIO_VERSION=v1.35
 echo '☸️ Installing Kubernetes...'
 limactl shell --tty=false k8s <<EOT
 sudo su
 
-DEBIAN_FRONTEND=noninteractive
+echo '-- 📦 Installing prerequisites in the node'
+export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y apt-transport-https ca-certificates curl gpg
+apt-get install -y apt-transport-https ca-certificates curl gpg software-properties-common
 
-cp $PROJECT_DIR/outputs/certs/ownca.crt /usr/local/share/ca-certificates/ownca.crt
-chmod 644 /usr/local/share/ca-certificates/ownca.crt
+echo '-- 🔑 Installing our own CA certificate in the node'
+install -m 0644 $PROJECT_DIR/outputs/certs/ownca.crt /usr/local/share/ca-certificates/ownca.crt
 update-ca-certificates
+
+echo '-- ⚙️  Configuring kernel modules'
+install -m 0644 $PROJECT_DIR/kubeadm/etc/modules-load.d/k8s.conf /etc/modules-load.d/k8s.conf
+modprobe overlay
+modprobe br_netfilter
+sysctl --system
+
+echo '-- 📦 Installing CRIO as container runtime and Kubernetes binaries'
+curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key |
+    gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" |
+    tee /etc/apt/sources.list.d/kubernetes.list
+
+curl -fsSL https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/deb/Release.key |
+    gpg --batch --yes --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/deb/ /" |
+    tee /etc/apt/sources.list.d/cri-o.list
+
+apt-get update
+apt-get install -y cri-o kubelet kubeadm kubectl
+
+echo '-- ⚙️  Configuring CRIO'
+install -m 0644 $PROJECT_DIR/kubeadm/etc/crio/20-crio.conf /etc/crio/crio.conf.d/20-crio.conf
+systemctl reload crio
+
+echo '-- ▶️  Starting Kubernetes services'
+systemctl enable kubelet crio
+systemctl start kubelet crio
 EOT

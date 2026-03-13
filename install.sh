@@ -143,9 +143,10 @@ sed -i '' 's/server: .*:6443/server: https:\/\/localhost:6443/g' $PROJECT_DIR/ou
 
 echo '--- 🔍 Checking Kubernetes cluster'
 kubectl cluster-info --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf
-echo '---   ✅ Kubernetes cluster installed'
+echo '--- ✅ Kubernetes cluster installed'
 
 echo '=== 📦 Installing cluster apps...'
+echo '--- 🔧 Installing Calico...'
 helm repo add projectcalico https://docs.tigera.io/calico/charts
 helm upgrade --install tigera-operator projectcalico/tigera-operator --version v3.27.3 \
   --namespace tigera-operator --create-namespace \
@@ -154,8 +155,17 @@ helm upgrade --install tigera-operator projectcalico/tigera-operator --version v
 kubectl wait --for=condition=ready installation.operator.tigera.io/default --timeout=300s
 kubectl rollout restart deployment coredns -n kube-system
 
+echo '--- 🔧 Installing ArgoCD...'
 helm upgrade --install argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 7.7.3 \
   --namespace argocd --create-namespace \
   --values $PROJECT_DIR/kubernetes/helm-chart-apps/argo-cd/values.yaml \
   --wait --atomic
+
+echo '--- ⏫ Uploading my own CA in CertManager...'
+kubectl get namespace cert-manager >/dev/null 2>&1 || kubectl create namespace cert-manager
+kubectl get secret own-ca --namespace cert-manager >/dev/null 2>&1 || kubectl create secret tls own-ca --cert=$PROJECT_DIR/outputs/certs/ownca.crt --key=$PROJECT_DIR/outputs/certs/ownca.key -n cert-manager
+
+echo '--- ▶️  Deploying all other apps with ArgoCD...'
+kubectl apply -f $PROJECT_DIR/kubernetes/argocd-app-of-apps.yaml
+
 echo '--- ✅ Cluster apps installed'

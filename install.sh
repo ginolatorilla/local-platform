@@ -117,4 +117,16 @@ systemctl reload crio
 echo '-- ▶️  Starting Kubernetes services'
 systemctl enable kubelet crio
 systemctl start kubelet crio
+
+echo '-- 🔧 Configuring Kubernetes'
+install -m 0644 $PROJECT_DIR/kubeadm/etc/kubernetes/audit-policy.yaml /etc/kubernetes/audit-policy.yaml
+install -m 0600 $PROJECT_DIR/kubeadm/etc/kubernetes/kubeadm.yaml /etc/kubernetes/kubeadm.yaml
+
+echo '-- 🏁 Initializing Kubernetes cluster'
+if ! kubectl cluster-info --kubeconfig /etc/kubernetes/admin.conf; then
+  kubeadm init --config /etc/kubernetes/kubeadm.yaml
+fi
+
+echo -e "-- 💾 Saving kubeconfig to \033[32m$PROJECT_DIR/outputs/kubeconfig.conf\033[0m"
+cp /etc/kubernetes/admin.conf $PROJECT_DIR/outputs/kubeconfig.conf
 EOT

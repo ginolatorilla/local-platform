@@ -80,6 +80,9 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y apt-transport-https ca-certificates curl gpg software-properties-common
 
+echo '-- 📝 Adding Docker registry to /etc/hosts'
+grep -q 'registry$' /etc/hosts || echo '192.168.5.2 registry' >> /etc/hosts
+
 echo '-- 🔑 Installing our own CA certificate in the node'
 install -m 0644 $PROJECT_DIR/outputs/certs/ownca.crt /usr/local/share/ca-certificates/ownca.crt
 update-ca-certificates

@@ -84,3 +84,4 @@ terraform.rc
 
 registry/store
 registry/.htpasswd
+registry/images.lock

@@ -53,6 +53,10 @@ echo '-- 🚢 Starting container registry...'
 docker --context lima compose -p registry -f $PROJECT_DIR/registry/docker-compose.yaml up -d --wait
 
 echo '💿 Pushing images to registry...'
+if [ ! -f "$PROJECT_DIR/registry/images.lock" ]; then
 for image in $(cat $PROJECT_DIR/images.txt); do
-    skopeo --override-os linux copy --dest-tls-verify=false docker://"$image" docker://localhost:5001/"$image"
-done
+        skopeo --override-os linux copy --dest-tls-verify=false docker://"$image" docker://localhost:5001/"$image"
+    done
+    touch $PROJECT_DIR/registry/images.lock
+fi
+echo '-- 🔒 Image lock file created. Delete this to push images again.'

@@ -15,26 +15,33 @@ rosetta:
   enabled: true
   binfmt: true
 
-cpus: {{ vm.cpus }}
-memory: {{ vm.memory }}
-disk: {{ vm.disk }}
+cpus: 18        # Somehow, we can exceed the host machine's CPUs ...
+memory: 48G     # ... but we can't exceed its memory.
+disk: 200G      # For ephemeral storage
 
 containerd:
   user: false
+  system: false
 
 mountInotify: true
 mountType: virtiofs
 mounts:
-  - location: "{{ outputs_dir + '/vm-storage' }}"
-    mountPoint: /mnt/data
-    writable: true
   - location: "~"
     mountPoint: /mnt/user
+  - location: "~/.lima/k8s/data"
+    mountPoint: /mnt/data
+    writable: true
 
 provision:
-  - # Remove the "lima-" prefix in the hostnames
-    mode: system
-    script: hostnamectl set-hostname {{ name }}
+  - mode: system
+    script: |
+      hostnamectl set-hostname k8s
 
 hostResolver:
   enabled: false
+
+dns:
+  - 1.1.1.1
+  - 1.0.0.1
+  - 8.8.8.8
+  - 8.8.4.4

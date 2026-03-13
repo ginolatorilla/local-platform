@@ -81,3 +81,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+registry/store
+registry/.htpasswd
+registry/images.lock

@@ -16,6 +16,7 @@ apiServer:
   extraArgs:
     audit-policy-file: /etc/kubernetes/audit-policy.yaml
     audit-log-path: /var/log/kubernetes/audit/audit.log
+    service-node-port-range: 80-32767
   extraVolumes:
     - hostPath: /etc/kubernetes/audit-policy.yaml
       mountPath: /etc/kubernetes/audit-policy.yaml
@@ -28,18 +29,18 @@ apiServer:
       pathType: DirectoryOrCreate
       readOnly: false
 certificatesDir: /etc/kubernetes/pki
-clusterName: {{ kubernetes_cluster_name }}
+clusterName: ginolatorilla
 controllerManager: {}
 dns:
-  imageRepository: registry:{{ registry.port }}/registry.k8s.io/coredns
+  imageRepository: registry:5001/registry.k8s.io/coredns
 etcd:
   local:
     dataDir: /var/lib/etcd
-imageRepository: registry:{{ registry.port }}/registry.k8s.io
+imageRepository: registry:5001/registry.k8s.io
 networking:
   dnsDomain: cluster.local
-  serviceSubnet: {{ kubernetes_service_cidr }}
-  podSubnet: {{ kubernetes_pod_cidr }}
+  serviceSubnet: 172.16.0.0/18
+  podSubnet: 10.85.0.0/16  # This is CRIO's default
 scheduler: {}
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1

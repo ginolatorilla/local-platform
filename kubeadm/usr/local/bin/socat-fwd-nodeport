@@ -1,0 +1,18 @@
+#!/bin/sh
+# Usage: socat-fwd-nodeport LISTEN_PORT [TARGET_PORT]
+#   One arg:  forward port LISTEN_PORT to 127.0.0.1:(LISTEN_PORT+30000)
+#   Two args: forward port LISTEN_PORT to 127.0.0.1:TARGET_PORT
+# Instance can be "X" or "X-Y" (e.g. socat-fwd@80 or socat-fwd@80-30380).
+
+set -e
+case "$1" in
+  *-*)
+    LISTEN="${1%-*}"
+    TARGET="${1#*-}"
+    ;;
+  *)
+    LISTEN="$1"
+    TARGET="$(($1 + 30000))"
+    ;;
+esac
+exec /usr/bin/socat "TCP4-LISTEN:${LISTEN},fork,reuseaddr" "TCP4:127.0.0.1:${TARGET}"

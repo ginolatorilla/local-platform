@@ -91,6 +91,7 @@ echo '-- ⚙️  Configuring kernel modules'
 install -m 0644 $PROJECT_DIR/kubeadm/etc/modules-load.d/k8s.conf /etc/modules-load.d/k8s.conf
 modprobe overlay
 modprobe br_netfilter
+install -m 0644 $PROJECT_DIR/kubeadm/etc/sysctl.d/k8s.conf /etc/sysctl.d/k8s.conf
 sysctl --system
 
 echo '-- 📦 Installing CRIO as container runtime and Kubernetes binaries'

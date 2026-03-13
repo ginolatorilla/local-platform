@@ -1,0 +1,21 @@
+services:
+  registry:
+    container_name: registry
+    restart: always
+    image: registry:2.8
+    ports:
+      - "5001:443"
+    volumes:
+      - "./store:/var/lib/registry"
+      - "./certs:/certs"
+      - "./.htpasswd:/auth/htpasswd"
+    environment:
+      REGISTRY_HTTP_ADDR: "0.0.0.0:443"
+      REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/tls.crt"
+      REGISTRY_HTTP_TLS_KEY: "/certs/tls.key"
+    healthcheck:
+      test: nc -z localhost 443
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 0s

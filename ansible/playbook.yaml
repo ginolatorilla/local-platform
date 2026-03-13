@@ -154,21 +154,10 @@
         line: '\1 host.lima.internal {{ registry.hosts | join(" ") }}'
         backrefs: true
 
-    - name: Stop existing Registry service
-      community.docker.docker_compose_v2:
-        cli_context: "{{ registry.docker_context }}"
-        project_name: registry
-        definition:
-          services:
-            registry:
-        state: absent
-        wait: true
-
-    - name: Launch the Registry Service
-      community.docker.docker_compose_v2:
-        cli_context: "{{ registry.docker_context }}"
-        project_name: registry
-        definition:
+    - name: Ensure registry compose file
+      ansible.builtin.copy:
+        dest: "{{ outputs_dir }}/registry-compose.yaml"
+        content: |
           services:
             registry:
               container_name: registry
@@ -184,16 +173,27 @@
                 REGISTRY_HTTP_ADDR: "0.0.0.0:443"
                 REGISTRY_HTTP_TLS_CERTIFICATE: "/certs/registry.crt"
                 REGISTRY_HTTP_TLS_KEY: "/certs/registry.key"
-                # REGISTRY_AUTH: htpasswd
-                # REGISTRY_AUTH_HTPASSWD_REALM: "registry"
-                # REGISTRY_AUTH_HTPASSWD_PATH: "/auth/htpasswd"
               healthcheck:
                 test: nc -z localhost 443
                 interval: 10s
                 timeout: 5s
                 retries: 3
                 start_period: 0s
-        wait: true
+
+    - name: Stop existing Registry service
+      ansible.builtin.shell: >-
+        docker --context {{ registry.docker_context }} compose
+        -p registry -f {{ outputs_dir }}/registry-compose.yaml
+        down --remove-orphans
+      register: registry_down
+      failed_when: false
+      changed_when: registry_down.rc == 0
+
+    - name: Launch the Registry Service
+      ansible.builtin.shell: >-
+        docker --context {{ registry.docker_context }} compose
+        -p registry -f {{ outputs_dir }}/registry-compose.yaml
+        up -d --wait
 
     - name: Push Images
       ansible.builtin.command: >-

@@ -67,3 +67,16 @@ limactl shell k8s exit >/dev/null || {
     limactl start --name k8s $PROJECT_DIR/k8s.lima.yaml --tty=false \
         --mount $PROJECT_DIR/outputs:w
 }
+
+echo '☸️ Installing Kubernetes...'
+limactl shell --tty=false k8s <<EOT
+sudo su
+
+DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl gpg
+
+cp $PROJECT_DIR/outputs/certs/ownca.crt /usr/local/share/ca-certificates/ownca.crt
+chmod 644 /usr/local/share/ca-certificates/ownca.crt
+update-ca-certificates
+EOT

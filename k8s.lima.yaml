@@ -17,7 +17,7 @@ rosetta:
 
 cpus: 18        # Somehow, we can exceed the host machine's CPUs ...
 memory: 48G     # ... but we can't exceed its memory.
-disk: 200G
+disk: 200G      # For ephemeral storage
 
 containerd:
   user: false

@@ -60,3 +60,10 @@ for image in $(cat $PROJECT_DIR/images.txt); do
     touch $PROJECT_DIR/registry/images.lock
 fi
 echo '-- 🔒 Image lock file created. Delete this to push images again.'
+
+echo '🔧 Setting up Kubernetes cluster...'
+echo '-- 🖥️️️️  Starting Kubernetes Control Plane VM...'
+limactl shell k8s exit >/dev/null || {
+    limactl start --name k8s $PROJECT_DIR/k8s.lima.yaml --tty=false \
+        --mount $PROJECT_DIR/outputs:w
+}

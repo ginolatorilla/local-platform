@@ -15,26 +15,32 @@ rosetta:
   enabled: true
   binfmt: true
 
-cpus: {{ vm.cpus }}
-memory: {{ vm.memory }}
-disk: {{ vm.disk }}
+cpus: 18        # Somehow, we can exceed the host machine's CPUs ...
+memory: 48G     # ... but we can't exceed its memory.
+disk: 200G
 
 containerd:
   user: false
+  system: false
 
 mountInotify: true
 mountType: virtiofs
 mounts:
-  - location: "{{ outputs_dir + '/vm-storage' }}"
-    mountPoint: /mnt/data
-    writable: true
   - location: "~"
     mountPoint: /mnt/user
 
 provision:
   - # Remove the "lima-" prefix in the hostnames
     mode: system
-    script: hostnamectl set-hostname {{ name }}
+    script: hostnamectl set-hostname k8s
 
 hostResolver:
   enabled: false
+  hosts:
+    registry: 192.168.5.2 # This is served by the registry running in Docker at port 5001.
+
+dns:
+  - 1.1.1.1
+  - 1.0.0.1
+  - 8.8.8.8
+  - 8.8.4.4

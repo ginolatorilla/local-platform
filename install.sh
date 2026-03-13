@@ -78,7 +78,14 @@ sudo su
 echo '--- 🔧 Installing prerequisites in the node...'
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y apt-transport-https ca-certificates curl gpg software-properties-common
+apt-get install -y apt-transport-https ca-certificates curl gpg software-properties-common socat
+
+echo '--- 🚏 Installing socat port forwarding service...'
+install -m 0755 $PROJECT_DIR/kubeadm/usr/local/bin/socat-fwd-nodeport /usr/local/bin/socat-fwd-nodeport
+install -m 0644 $PROJECT_DIR/kubeadm/etc/systemd/socat-fwd@.service /etc/systemd/system/socat-fwd@.service
+systemctl daemon-reload
+systemctl enable --now socat-fwd@80
+systemctl enable --now socat-fwd@443
 
 echo '--- 📝 Adding Docker registry to /etc/hosts'
 grep -q 'registry$' /etc/hosts || echo '192.168.5.2 registry' >> /etc/hosts

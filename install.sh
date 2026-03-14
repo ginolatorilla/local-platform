@@ -206,10 +206,7 @@ EOT
   kubectl cluster-info
   echo '--- ✅ Kubernetes cluster installed'
 
-  [ $BARE -ne 0 ] && exit 0
-
-  echo '=== 📦 Installing cluster apps...'
-  echo '--- 🔧 Installing Calico...'
+  echo '--- 🔧 Installing Calico (CNI)...'
   helm repo add projectcalico https://docs.tigera.io/calico/charts
   helm upgrade --install tigera-operator projectcalico/tigera-operator --version v3.27.3 \
     --namespace tigera-operator --create-namespace \
@@ -219,6 +216,8 @@ EOT
   kubectl wait --for=condition=ready installation.operator.tigera.io/default --timeout=300s
   kubectl rollout restart deployment coredns -n kube-system
 
+  [ $BARE -ne 0 ] && exit 0
+  echo '=== 📦 Installing cluster apps...'
   echo '--- 🔧 Installing ArgoCD...'
   helm upgrade --install argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 7.7.3 \
     --namespace argocd --create-namespace \

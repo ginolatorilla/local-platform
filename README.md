@@ -42,14 +42,13 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 ### Resetting the VM
 
 1. Modify `k8s.lima.yaml`
-2. Run `./reset-vm.sh`.
+2. Run `./install.sh --reset-vm`.
 3. Wait for all the pods to restart.
 
 ### Resetting the cluster
 
 1. Modify any file in `kubeadm/*`
-2. Run `./reset-cluster.sh`.
-3. Run `./install-sh` to continue with the remaining tasks.
+2. Run `./install.sh --reset-cluster`.
 
 ## Port forwarding
 
@@ -76,3 +75,8 @@ or use `<name>.localhost`.
 The `~/.lima/k8s/data` folder is mounted to the VM as `/mnt/data`. The PV provisioner (based from Rancher)
 will mount volumes to this directory, ensuring application data will survive if the cluster is destroyed.
 This will also contain the Kubernetes API server audit logs.
+
+## Airgap images
+
+A private container registry will run in Docker and listen on the host at `0.0.0.0:5001`. The images listed in `images.txt`
+will be pushed to the registry, resulting in the final URL `registry:5001/<image>`. The node will resolve `registry` to the host's IP.

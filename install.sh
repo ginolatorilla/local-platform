@@ -194,56 +194,62 @@ EOT
 
   echo '--- ✍️  Rewriting kubeconfig to use localhost:6443'
   sed -i '' 's/server: .*:6443/server: https:\/\/localhost:6443/g' $PROJECT_DIR/outputs/kubeconfig.conf
+  export KUBECONFIG=$PROJECT_DIR/outputs/kubeconfig.conf
 
   echo '--- 🔍 Checking Kubernetes cluster'
-  kubectl cluster-info --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf
+  kubectl cluster-info
   echo '--- ✅ Kubernetes cluster installed'
 
   echo '=== 📦 Installing cluster apps...'
   echo '--- 🔧 Installing Calico...'
   helm repo add projectcalico https://docs.tigera.io/calico/charts
   helm upgrade --install tigera-operator projectcalico/tigera-operator --version v3.27.3 \
-    --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf \
     --namespace tigera-operator --create-namespace \
     --values $PROJECT_DIR/kubernetes/helm-chart-apps/tigera-operator/values.yaml \
     --wait --atomic
-  kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf wait --for=condition=ready installation.operator.tigera.io/default --timeout=300s
-  kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf rollout restart deployment coredns -n kube-system
+  kubectl wait --for=condition=ready installation.operator.tigera.io/default --timeout=300s
+  kubectl rollout restart deployment coredns -n kube-system
 
   echo '--- 🔧 Installing ArgoCD...'
   helm upgrade --install argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --version 7.7.3 \
-    --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf \
     --namespace argocd --create-namespace \
     --values $PROJECT_DIR/kubernetes/helm-chart-apps/argo-cd/values.yaml \
     --wait --atomic
 
   echo '--- ⏫ Uploading my own CA in CertManager...'
-  kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf get namespace cert-manager >/dev/null 2>&1 || kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf create namespace cert-manager
-  kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf get secret own-ca --namespace cert-manager >/dev/null 2>&1 || kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf create secret tls own-ca --cert=$PROJECT_DIR/outputs/certs/ownca.crt --key=$PROJECT_DIR/outputs/certs/ownca.key -n cert-manager
+  kubectl get namespace cert-manager >/dev/null 2>&1 || kubectl create namespace cert-manager
+  kubectl get secret own-ca --namespace cert-manager >/dev/null 2>&1 || kubectl create secret tls own-ca --cert=$PROJECT_DIR/outputs/certs/ownca.crt --key=$PROJECT_DIR/outputs/certs/ownca.key -n cert-manager
 
   echo '--- ▶️  Deploying all other apps with ArgoCD...'
-  kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf apply -f $PROJECT_DIR/kubernetes/argocd-app-of-apps.yaml
+  kubectl apply -f $PROJECT_DIR/kubernetes/argocd-app-of-apps.yaml
 
   echo '=== ⭐️ Activating HashiCorp Vault...'
-  kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf wait --for=condition=Ready pod -l app.kubernetes.io/name=vault -n vault --timeout=300s
-  kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf wait --for=condition=PodReadyToStartContainers pod -l app.kubernetes.io/name=vault -n vault --timeout=300s
+  echo '--- Waiting for Vault pod to be created by ArgoCD...'
+  for i in $(seq 1 60); do
+    if kubectl get pod -l app.kubernetes.io/name=vault -n vault -o name 2>/dev/null | grep -q .; then
+      break
+    fi
+    [ $i -eq 60 ] && { echo 'Timeout waiting for Vault pod to appear'; exit 1; }
+    sleep 5
+  done
+  kubectl wait --for=condition=PodReadyToStartContainers pod -l app.kubernetes.io/name=vault -n vault --timeout=300s
 
   set +e
   echo '--- 🏁 Initializing Vault'
-  status=$(kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf exec sts/vault -n vault -- vault status -format json 2>/dev/null)
+  status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
   if echo "$status" | jq -e '.initialized != true' >/dev/null; then
-      kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf exec -n vault sts/vault -- vault operator init > $PROJECT_DIR/outputs/vault_unseal_keys.txt
+      kubectl exec -n vault sts/vault -- vault operator init > $PROJECT_DIR/outputs/vault_unseal_keys.txt
       [ $? -ne 2 ] && exit $?
   fi
 
   echo '--- 🔓 Unsealing Vault'
-  status=$(kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf exec sts/vault -n vault -- vault status -format json 2>/dev/null)
+  status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
   if echo "$status" | jq -e '.sealed == true' >/dev/null; then
       for key in $(grep 'Unseal Key [0-9]\+' $PROJECT_DIR/outputs/vault_unseal_keys.txt | cut -d ':' -f 2); do
           echo "--- 🔓 Unsealing Vault with key $key"
-          kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf exec -n vault sts/vault -- vault operator unseal $key
+          kubectl exec -n vault sts/vault -- vault operator unseal $key
           [ $? -eq 1 ] && exit $?
-          status=$(kubectl --kubeconfig $PROJECT_DIR/outputs/kubeconfig.conf exec sts/vault -n vault -- vault status -format json 2>/dev/null)
+          status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
           echo "$status" | jq -e '.sealed == false' >/dev/null && break
       done
   fi

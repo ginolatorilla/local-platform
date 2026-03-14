@@ -23,4 +23,4 @@ controller:
   ingressClass:
     name: nginxinc
     create: true
-    setAsDefaultIngress: false
+    setAsDefaultIngress: true

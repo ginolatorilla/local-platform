@@ -75,3 +75,8 @@ or use `<name>.localhost`.
 The `~/.lima/k8s/data` folder is mounted to the VM as `/mnt/data`. The PV provisioner (based from Rancher)
 will mount volumes to this directory, ensuring application data will survive if the cluster is destroyed.
 This will also contain the Kubernetes API server audit logs.
+
+## Airgap images
+
+A private container registry will run in Docker and listen on the host at `0.0.0.0:5001`. The images listed in `images.txt`
+will be pushed to the registry, resulting in the final URL `registry:5001/<image>`. The node will resolve `registry` to the host's IP.

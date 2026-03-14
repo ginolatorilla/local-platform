@@ -16,7 +16,6 @@ apiServer:
   extraArgs:
     audit-policy-file: /etc/kubernetes/audit-policy.yaml
     audit-log-path: /var/log/kubernetes/audit/audit.log
-    service-node-port-range: 80-32767
   extraVolumes:
     - hostPath: /etc/kubernetes/audit-policy.yaml
       mountPath: /etc/kubernetes/audit-policy.yaml

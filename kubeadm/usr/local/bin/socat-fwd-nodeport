@@ -5,6 +5,7 @@
 # Instance can be "X" or "X-Y" (e.g. socat-fwd@80 or socat-fwd@80-30380).
 
 set -e
+magic_number=${2:-30000}
 case "$1" in
   *-*)
     LISTEN="${1%-*}"
@@ -12,7 +13,7 @@ case "$1" in
     ;;
   *)
     LISTEN="$1"
-    TARGET="$(($1 + 30000))"
+    TARGET="$(($1 + $magic_number))"
     ;;
 esac
 exec /usr/bin/socat "TCP4-LISTEN:${LISTEN},fork,reuseaddr" "TCP4:127.0.0.1:${TARGET}"

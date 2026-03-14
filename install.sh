@@ -11,11 +11,13 @@ usage() {
     echo "  --help            Show this help message and exit"
     echo "  --reset-vm        Reset the VM (useful when modifying the VM configuration)"
     echo "  --reset-cluster   Reset the cluster (useful when modifying the cluster configuration)"
+    echo "  --bare            Bare installation (no apps will be installed)"
 }
 
 main() {
   RESET_VM=0
   RESET_CLUSTER=0
+  BARE=0
 
   while [[ $# -gt 0 ]]; do
       case "$1" in
@@ -29,6 +31,10 @@ main() {
               ;;
           --reset-cluster)
               RESET_CLUSTER=1
+              shift
+              ;;
+          --bare)
+              BARE=1
               shift
               ;;
           *)
@@ -111,8 +117,8 @@ main() {
           --mount $PROJECT_DIR/kubeadm
   }
 
-  KUBERNETES_VERSION=v1.35
-  CRIO_VERSION=v1.35
+  KUBERNETES_VERSION=v1.34
+  CRIO_VERSION=v1.34
   echo '--- 🔧 Installing Kubernetes...'
   limactl shell --tty=false k8s <<EOT
   sudo su
@@ -199,6 +205,8 @@ EOT
   echo '--- 🔍 Checking Kubernetes cluster'
   kubectl cluster-info
   echo '--- ✅ Kubernetes cluster installed'
+
+  [ $BARE -ne 0 ] && exit 0
 
   echo '=== 📦 Installing cluster apps...'
   echo '--- 🔧 Installing Calico...'

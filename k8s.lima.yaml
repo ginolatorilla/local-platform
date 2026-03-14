@@ -15,7 +15,7 @@ rosetta:
   enabled: true
   binfmt: true
 
-cpus: 18        # Somehow, we can exceed the host machine's CPUs ...
+cpus: 16        # Somehow, we can exceed the host machine's CPUs ...
 memory: 48G     # ... but we can't exceed its memory.
 disk: 200G      # For ephemeral storage
 

@@ -111,8 +111,8 @@ main() {
           --mount $PROJECT_DIR/kubeadm
   }
 
-  KUBERNETES_VERSION=v1.35
-  CRIO_VERSION=v1.35
+  KUBERNETES_VERSION=v1.34
+  CRIO_VERSION=v1.34
   echo '--- 🔧 Installing Kubernetes...'
   limactl shell --tty=false k8s <<EOT
   sudo su

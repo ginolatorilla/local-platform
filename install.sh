@@ -207,6 +207,7 @@ EOT
     --namespace tigera-operator --create-namespace \
     --values $PROJECT_DIR/kubernetes/helm-chart-apps/tigera-operator/values.yaml \
     --wait --atomic
+  echo '--- 🕰️  Waiting for CNI to be ready...'
   kubectl wait --for=condition=ready installation.operator.tigera.io/default --timeout=300s
   kubectl rollout restart deployment coredns -n kube-system
 
@@ -233,13 +234,14 @@ EOT
     sleep 5
   done
   kubectl wait --for=condition=PodReadyToStartContainers pod -l app.kubernetes.io/name=vault -n vault --timeout=300s
+  sleep 10
 
   set +e
   echo '--- 🏁 Initializing Vault'
   status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
   if echo "$status" | jq -e '.initialized != true' >/dev/null; then
       kubectl exec -n vault sts/vault -- vault operator init > $PROJECT_DIR/outputs/vault_unseal_keys.txt
-      [ $? -ne 2 ] && exit $?
+      [ $? -eq 1 ] && { echo 'Failed to initialize Vault'; exit 1; }
   fi
 
   echo '--- 🔓 Unsealing Vault'
@@ -248,7 +250,7 @@ EOT
       for key in $(grep 'Unseal Key [0-9]\+' $PROJECT_DIR/outputs/vault_unseal_keys.txt | cut -d ':' -f 2); do
           echo "--- 🔓 Unsealing Vault with key $key"
           kubectl exec -n vault sts/vault -- vault operator unseal $key
-          [ $? -eq 1 ] && exit $?
+          [ $? -eq 1 ] && { echo 'Failed to unseal Vault'; exit 1; }
           status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
           echo "$status" | jq -e '.sealed == false' >/dev/null && break
       done
@@ -258,6 +260,17 @@ EOT
   echo '--- 💾 Saving Vault root token to Terraform repo'
   token=$(grep 'Initial Root Token:' $PROJECT_DIR/outputs/vault_unseal_keys.txt | cut -d ':' -f 2)
   echo "token=\"$token\"" > $PROJECT_DIR/terraform/vault/local.auto.tfvars
+
+  echo '--- ⏳ Waiting for Vault Ingress to be created...'
+  for i in $(seq 1 60); do
+    VAULT_INGRESS_HOST=$(kubectl get ingress -n vault -o jsonpath='{.items[?(@.metadata.name=="vault")].spec.rules[0].host}')
+    if [ -n "$VAULT_INGRESS_HOST" ] && curl -fsL "https://$VAULT_INGRESS_HOST" >/dev/null 2>&1; then
+      echo "Vault Ingress found and reachable."
+      break
+    fi
+    [ $i -eq 60 ] && { echo 'Timeout waiting for Vault Ingress to appear'; exit 1; }
+    sleep 5
+  done
 
   echo '=== ✨ Running Terraform to configure Vault...'
   cd $PROJECT_DIR/terraform/vault

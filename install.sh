@@ -173,9 +173,6 @@ main() {
 
   if [ $RESET_CLUSTER -ne 0 ]; then
     set +e
-    for node in $(kubectl get --no-headers nodes | awk '{print $1}'); do
-      kubectl --kubeconfig /etc/kubernetes/admin.conf drain \$node --delete-emptydir-data --force --ignore-daemonsets
-    done
     echo '--- 🔄 Resetting Kubernetes cluster...'
     kubeadm reset -f
     iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X

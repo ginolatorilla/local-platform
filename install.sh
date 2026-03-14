@@ -10,10 +10,12 @@ usage() {
     echo "Options:"
     echo "  --help            Show this help message and exit"
     echo "  --reset-vm        Reset the VM (useful when modifying the VM configuration)"
+    echo "  --reset-cluster   Reset the cluster (useful when modifying the cluster configuration)"
 }
 
 main() {
   RESET_VM=0
+  RESET_CLUSTER=0
 
   while [[ $# -gt 0 ]]; do
       case "$1" in
@@ -25,6 +27,10 @@ main() {
               RESET_VM=1
               shift
               ;;
+          --reset-cluster)
+              RESET_CLUSTER=1
+              shift
+              ;;
           *)
               echo "Unknown argument: $1"
               usage
@@ -34,7 +40,7 @@ main() {
   done
 
   echo '=== 👀 Checking if required tools are installed...'
-  for tool in kubectl helm lima docker skopeo htpasswd; do
+  for tool in kubectl helm lima docker skopeo htpasswd terraform jq sed; do
     if command -v "$tool" > /dev/null; then
       echo "--- ✅ $tool is installed"
     else
@@ -165,6 +171,21 @@ main() {
   install -m 0644 $PROJECT_DIR/kubeadm/etc/kubernetes/audit-policy.yaml /etc/kubernetes/audit-policy.yaml
   install -m 0600 $PROJECT_DIR/kubeadm/etc/kubernetes/kubeadm.yaml /etc/kubernetes/kubeadm.yaml
 
+  if [ $RESET_CLUSTER -ne 0 ]; then
+    set +e
+    for node in $(kubectl get --no-headers nodes | awk '{print $1}'); do
+      kubectl --kubeconfig /etc/kubernetes/admin.conf drain \$node --delete-emptydir-data --force --ignore-daemonsets
+    done
+    echo '--- 🔄 Resetting Kubernetes cluster...'
+    kubeadm reset -f
+    iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+    command -v ipvsadm && ipvsadm -C
+    set -e
+
+    echo '--- ▶️  Restarting Kubernetes services'
+    systemctl restart kubelet crio
+  fi
+
   echo '--- 🏁 Initializing Kubernetes cluster...'
   if ! kubectl cluster-info --kubeconfig /etc/kubernetes/admin.conf; then
     kubeadm init --config /etc/kubernetes/kubeadm.yaml
@@ -204,7 +225,38 @@ EOT
   echo '--- ▶️  Deploying all other apps with ArgoCD...'
   kubectl apply -f $PROJECT_DIR/kubernetes/argocd-app-of-apps.yaml
 
-  $PROJECT_DIR/unseal-vault.sh
+  echo '=== ⭐️ Activating HashiCorp Vault...'
+  kubectl wait --for=condition=PodReadyToStartContainers pod -l app.kubernetes.io/name=vault -n vault --timeout=300s
+
+  set +e
+  echo '--- 🏁 Initializing Vault'
+  status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
+  if echo "$status" | jq -e '.initialized != true' >/dev/null; then
+      kubectl exec -n vault sts/vault -- vault operator init > $PROJECT_DIR/outputs/vault_unseal_keys.txt
+      [ $? -ne 2 ] && exit $?
+  fi
+
+  echo '--- 🔓 Unsealing Vault'
+  status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
+  if echo "$status" | jq -e '.sealed == true' >/dev/null; then
+      for key in $(grep 'Unseal Key [0-9]\+' $PROJECT_DIR/outputs/vault_unseal_keys.txt | cut -d ':' -f 2); do
+          echo "--- 🔓 Unsealing Vault with key $key"
+          kubectl exec -n vault sts/vault -- vault operator unseal $key
+          [ $? -eq 1 ] && exit $?
+          status=$(kubectl exec sts/vault -n vault -- vault status -format json 2>/dev/null)
+          echo "$status" | jq -e '.sealed == false' >/dev/null && break
+      done
+  fi
+  set -e
+
+  echo '--- 💾 Saving Vault root token to Terraform repo'
+  token=$(grep 'Initial Root Token:' $PROJECT_DIR/outputs/vault_unseal_keys.txt | cut -d ':' -f 2)
+  echo "token=\"$token\"" > $PROJECT_DIR/terraform/vault/local.auto.tfvars
+
+  echo '=== ✨ Running Terraform to configure Vault...'
+  cd $PROJECT_DIR/terraform/vault
+  terraform init -reconfigure
+  terraform apply -auto-approve
 }
 
 main "$@"

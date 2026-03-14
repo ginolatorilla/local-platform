@@ -48,8 +48,7 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 ### Resetting the cluster
 
 1. Modify any file in `kubeadm/*`
-2. Run `./reset-cluster.sh`.
-3. Run `./install-sh` to continue with the remaining tasks.
+2. Run `./install.sh --reset-cluster`.
 
 ## Port forwarding
 

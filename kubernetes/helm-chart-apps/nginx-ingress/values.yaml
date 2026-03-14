@@ -19,3 +19,8 @@ controller:
 
   image:
     repository: registry:5001/docker.io/nginx/nginx-ingress
+
+  ingressClass:
+    name: nginxinc
+    create: true
+    setAsDefaultIngress: true

@@ -6,7 +6,7 @@ server:
     enabled: true
     annotations:
       cert-manager.io/cluster-issuer: ingress-cert-issuer
-    ingressClassName: nginx
+    ingressClassName: nginxinc
     hosts:
       - host: vault.localhost
         path: []

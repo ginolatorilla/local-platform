@@ -42,7 +42,7 @@ This is a laptop-only version of my [home lab](https://github.com/ginolatorilla/
 ### Resetting the VM
 
 1. Modify `k8s.lima.yaml`
-2. Run `./reset-vm.sh`.
+2. Run `./install.sh --reset-vm`.
 3. Wait for all the pods to restart.
 
 ### Resetting the cluster

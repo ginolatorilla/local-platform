@@ -6,7 +6,7 @@ global:
 server:
   ingress:
     enabled: true
-    ingressClassName: nginx
+    ingressClassName: nginxinc
     annotations:
       cert-manager.io/cluster-issuer: "ingress-cert-issuer"
     tls: true

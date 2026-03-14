@@ -8,7 +8,7 @@ server:
     repository: registry:5001/quay.io/prometheus/prometheus
   ingress:
     enabled: true
-    ingressClassName: nginx
+    ingressClassName: nginxinc
     annotations:
       cert-manager.io/cluster-issuer: "ingress-cert-issuer"
     hosts:
